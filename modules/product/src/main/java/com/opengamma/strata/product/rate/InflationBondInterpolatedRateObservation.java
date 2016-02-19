@@ -62,7 +62,6 @@ public final class InflationBondInterpolatedRateObservation
    * The reference month for the index relative to the end date of the period.
    * <p>
    * The reference month is typically three months before the end date of the period.
-   * Must be after the reference start month.
    */
   @PropertyDefinition(validate = "notNull")
   private final YearMonth referenceEndMonth;
@@ -213,7 +212,6 @@ public final class InflationBondInterpolatedRateObservation
    * Gets the reference month for the index relative to the end date of the period.
    * <p>
    * The reference month is typically three months before the end date of the period.
-   * Must be after the reference start month.
    * @return the value of the property, not null
    */
   public YearMonth getReferenceEndMonth() {
@@ -587,7 +585,6 @@ public final class InflationBondInterpolatedRateObservation
      * Sets the reference month for the index relative to the end date of the period.
      * <p>
      * The reference month is typically three months before the end date of the period.
-     * Must be after the reference start month.
      * @param referenceEndMonth  the new value, not null
      * @return this, for chaining, not null
      */
