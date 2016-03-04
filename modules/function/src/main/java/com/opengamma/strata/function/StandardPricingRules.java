@@ -10,9 +10,9 @@ import com.opengamma.strata.calc.config.pricing.PricingRule;
 import com.opengamma.strata.calc.config.pricing.PricingRules;
 import com.opengamma.strata.function.calculation.credit.CdsFunctionGroups;
 import com.opengamma.strata.function.calculation.deposit.TermDepositFunctionGroups;
+import com.opengamma.strata.function.calculation.etd.GenericEtdFunctionGroups;
+import com.opengamma.strata.function.calculation.etd.GenericFutureOptionFunctionGroups;
 import com.opengamma.strata.function.calculation.fra.FraFunctionGroups;
-import com.opengamma.strata.function.calculation.future.GenericFutureFunctionGroups;
-import com.opengamma.strata.function.calculation.future.GenericFutureOptionFunctionGroups;
 import com.opengamma.strata.function.calculation.fx.FxNdfFunctionGroups;
 import com.opengamma.strata.function.calculation.fx.FxSingleFunctionGroups;
 import com.opengamma.strata.function.calculation.fx.FxSwapFunctionGroups;
@@ -54,7 +54,7 @@ final class StandardPricingRules {
       PricingRule.builder(FxSingleTrade.class).functionGroup(FxSingleFunctionGroups.discounting()).build(),
       PricingRule.builder(FxNdfTrade.class).functionGroup(FxNdfFunctionGroups.discounting()).build(),
       PricingRule.builder(FxSwapTrade.class).functionGroup(FxSwapFunctionGroups.discounting()).build(),
-      PricingRule.builder(GenericFutureTrade.class).functionGroup(GenericFutureFunctionGroups.market()).build(),
+      PricingRule.builder(GenericFutureTrade.class).functionGroup(GenericEtdFunctionGroups.market()).build(),
       PricingRule.builder(GenericFutureOptionTrade.class).functionGroup(GenericFutureOptionFunctionGroups.market()).build(),
       PricingRule.builder(IborFutureTrade.class).functionGroup(IborFutureFunctionGroups.discounting()).build(),
       PricingRule.builder(SwapTrade.class).functionGroup(SwapFunctionGroups.discounting()).build(),

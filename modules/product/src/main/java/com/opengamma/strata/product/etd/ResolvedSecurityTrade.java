@@ -6,6 +6,7 @@
 package com.opengamma.strata.product.etd;
 
 import com.opengamma.strata.basics.currency.Currency;
+import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.product.TradeInfo;
 
 /**
@@ -36,6 +37,18 @@ public interface ResolvedSecurityTrade {
    * @return the security
    */
   public abstract ResolvedSecurity getSecurity();
+
+  /**
+   * Gets the security identifier.
+   * <p>
+   * This identifier uniquely identifies the security within the system.
+   * It is the key used to lookup the security in {@link ReferenceData}.
+   * 
+   * @return the security identifier
+   */
+  public default SecurityId getSecurityId() {
+    return getSecurity().getSecurityId();
+  }
 
   /**
    * Gets the currency of the trade.

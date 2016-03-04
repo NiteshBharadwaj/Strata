@@ -6,6 +6,7 @@
 package com.opengamma.strata.report.framework.expression;
 
 import static com.opengamma.strata.collect.CollectProjectAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 
@@ -15,10 +16,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.opengamma.strata.basics.Trade;
 import com.opengamma.strata.collect.id.StandardId;
-import com.opengamma.strata.product.SecurityLink;
 import com.opengamma.strata.product.TradeInfo;
-import com.opengamma.strata.product.future.GenericFuture;
-import com.opengamma.strata.product.future.GenericFutureTrade;
+import com.opengamma.strata.product.etd.EtdTrade;
+import com.opengamma.strata.product.etd.SecurityId;
 
 /**
  * Test {@link TradeTokenEvaluator}.
@@ -32,7 +32,7 @@ public class TradeTokenEvaluatorTest {
     Set<String> expected = ImmutableSet.of(
         "quantity",
         "initialPrice",
-        "securityLink",
+        "securityId",
         "id",
         "counterparty",
         "tradeDate",
@@ -71,12 +71,11 @@ public class TradeTokenEvaluatorTest {
   }
 
   private static Trade trade() {
-    SecurityLink<GenericFuture> securityLink = SecurityLink.resolvable(StandardId.of("foo", "1"), GenericFuture.class);
     TradeInfo tradeInfo = TradeInfo.builder()
         .counterparty(StandardId.of("cpty", "a"))
         .build();
-    return GenericFutureTrade.builder()
-        .securityLink(securityLink)
+    return EtdTrade.builder()
+        .securityId(SecurityId.of("foo", "1"))
         .quantity(123)
         .initialPrice(456)
         .tradeInfo(tradeInfo)

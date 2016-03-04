@@ -1,40 +1,40 @@
 /**
- * Copyright (C) 2015 - present by OpenGamma Inc. and the OpenGamma group of companies
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
  * 
  * Please see distribution for license.
  */
-package com.opengamma.strata.function.calculation.future;
+package com.opengamma.strata.function.calculation.etd;
 
 import com.opengamma.strata.calc.config.Measures;
 import com.opengamma.strata.calc.config.pricing.DefaultFunctionGroup;
 import com.opengamma.strata.calc.config.pricing.FunctionGroup;
-import com.opengamma.strata.product.future.GenericFutureTrade;
+import com.opengamma.strata.product.etd.EtdTrade;
 
 /**
- * Contains function groups for built-in generic future calculation functions.
+ * Contains function groups for built-in generic ETD calculation functions.
  * <p>
  * Function groups are used in pricing rules to allow the engine to calculate the
  * measures provided by the functions in the group.
  */
-public final class GenericFutureFunctionGroups {
+public final class GenericEtdFunctionGroups {
 
   /**
    * The group with pricers based on market methods.
    */
-  private static final FunctionGroup<GenericFutureTrade> MARKET_GROUP =
-      DefaultFunctionGroup.builder(GenericFutureTrade.class).name("GenericFutureTradeMarket")
-          .addFunction(Measures.PRESENT_VALUE, GenericFutureCalculationFunction.class)
+  private static final FunctionGroup<EtdTrade> MARKET_GROUP =
+      DefaultFunctionGroup.builder(EtdTrade.class).name("EtdTradeMarket")
+          .addFunction(Measures.PRESENT_VALUE, GenericEtdCalculationFunction.class)
           .build();
 
   /**
    * Restricted constructor.
    */
-  private GenericFutureFunctionGroups() {
+  private GenericEtdFunctionGroups() {
   }
 
   //-------------------------------------------------------------------------
   /**
-   * Obtains the function group providing all built-in measures on generic future
+   * Obtains the function group providing all built-in measures on generic ETD
    * trades based solely on querying the market for the present value.
    * <p>
    * The supported built-in measures are:
@@ -45,7 +45,7 @@ public final class GenericFutureFunctionGroups {
    * 
    * @return the function group
    */
-  public static FunctionGroup<GenericFutureTrade> market() {
+  public static FunctionGroup<EtdTrade> market() {
     return MARKET_GROUP;
   }
 

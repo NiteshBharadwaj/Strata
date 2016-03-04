@@ -30,6 +30,9 @@ import com.opengamma.strata.calc.marketdata.FunctionRequirements;
 import com.opengamma.strata.calc.runner.function.result.CurrencyValuesArray;
 import com.opengamma.strata.collect.id.StandardId;
 import com.opengamma.strata.collect.result.Result;
+import com.opengamma.strata.function.calculation.etd.GenericEtdCalculationFunction;
+import com.opengamma.strata.function.calculation.etd.GenericEtdFunctionGroups;
+import com.opengamma.strata.function.calculation.etd.GenericEtdMeasureCalculations;
 import com.opengamma.strata.function.marketdata.curve.TestMarketDataMap;
 import com.opengamma.strata.market.key.QuoteKey;
 import com.opengamma.strata.product.SecurityLink;
@@ -39,7 +42,7 @@ import com.opengamma.strata.product.future.GenericFuture;
 import com.opengamma.strata.product.future.GenericFutureTrade;
 
 /**
- * Test {@link GenericFutureCalculationFunction}.
+ * Test {@link GenericEtdCalculationFunction}.
  */
 @Test
 public class GenericFutureCalculationFunctionTest {
@@ -73,16 +76,16 @@ public class GenericFutureCalculationFunctionTest {
 
   //-------------------------------------------------------------------------
   public void test_group() {
-    FunctionGroup<GenericFutureTrade> test = GenericFutureFunctionGroups.market();
+    FunctionGroup<GenericFutureTrade> test = GenericEtdFunctionGroups.market();
     assertThat(test.configuredMeasures(TRADE)).contains(
         Measures.PRESENT_VALUE);
     FunctionConfig<GenericFutureTrade> config =
-        GenericFutureFunctionGroups.market().functionConfig(TRADE, Measures.PRESENT_VALUE).get();
-    assertThat(config.createFunction()).isInstanceOf(GenericFutureCalculationFunction.class);
+        GenericEtdFunctionGroups.market().functionConfig(TRADE, Measures.PRESENT_VALUE).get();
+    assertThat(config.createFunction()).isInstanceOf(GenericEtdCalculationFunction.class);
   }
 
   public void test_requirementsAndCurrency() {
-    GenericFutureCalculationFunction function = new GenericFutureCalculationFunction();
+    GenericEtdCalculationFunction function = new GenericEtdCalculationFunction();
     Set<Measure> measures = function.supportedMeasures();
     FunctionRequirements reqs = function.requirements(TRADE, measures, REF_DATA);
     assertThat(reqs.getOutputCurrencies()).containsOnly(CURRENCY);
@@ -92,7 +95,7 @@ public class GenericFutureCalculationFunctionTest {
   }
 
   public void test_presentValue() {
-    GenericFutureCalculationFunction function = new GenericFutureCalculationFunction();
+    GenericEtdCalculationFunction function = new GenericEtdCalculationFunction();
     CalculationMarketData md = marketData();
     
     double unitPv = (MARKET_PRICE / TICK_SIZE) * TICK_VALUE;
@@ -117,8 +120,8 @@ public class GenericFutureCalculationFunctionTest {
 
   //-------------------------------------------------------------------------
   public void coverage() {
-    coverPrivateConstructor(GenericFutureFunctionGroups.class);
-    coverPrivateConstructor(GenericFutureMeasureCalculations.class);
+    coverPrivateConstructor(GenericEtdFunctionGroups.class);
+    coverPrivateConstructor(GenericEtdMeasureCalculations.class);
   }
 
 }

@@ -3,7 +3,7 @@
  *
  * Please see distribution for license.
  */
-package com.opengamma.strata.function.calculation.future;
+package com.opengamma.strata.function.calculation.etd;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,10 +23,11 @@ import com.opengamma.strata.calc.runner.function.result.ScenarioResult;
 import com.opengamma.strata.collect.result.FailureReason;
 import com.opengamma.strata.collect.result.Result;
 import com.opengamma.strata.market.key.QuoteKey;
-import com.opengamma.strata.product.future.GenericFutureTrade;
+import com.opengamma.strata.product.etd.EtdTrade;
+import com.opengamma.strata.product.etd.ResolvedGenericEtdTrade;
 
 /**
- * Perform calculations on a single {@code GenericFutureTrade} for each of a set of scenarios.
+ * Perform calculations on a single {@code EtdTrade} for each of a set of scenarios.
  * <p>
  * The supported built-in measures are:
  * <ul>
@@ -34,15 +35,15 @@ import com.opengamma.strata.product.future.GenericFutureTrade;
  *   <li>{@linkplain Measures#PRESENT_VALUE_MULTI_CCY Present value with no currency conversion}
  * </ul>
  */
-public class GenericFutureCalculationFunction
-    implements CalculationFunction<GenericFutureTrade> {
+public class GenericEtdCalculationFunction
+    implements CalculationFunction<EtdTrade> {
 
   /**
    * The calculations by measure.
    */
   private static final ImmutableMap<Measure, SingleMeasureCalculation> CALCULATORS =
       ImmutableMap.<Measure, SingleMeasureCalculation>builder()
-          .put(Measures.PRESENT_VALUE, GenericFutureMeasureCalculations::presentValue)
+          .put(Measures.PRESENT_VALUE, GenericEtdMeasureCalculations::presentValue)
           .build();
 
   private static final ImmutableSet<Measure> MEASURES = ImmutableSet.<Measure>builder()
@@ -53,7 +54,7 @@ public class GenericFutureCalculationFunction
   /**
    * Creates an instance.
    */
-  public GenericFutureCalculationFunction() {
+  public GenericEtdCalculationFunction() {
   }
 
   //-------------------------------------------------------------------------
@@ -63,33 +64,36 @@ public class GenericFutureCalculationFunction
   }
 
   @Override
-  public Currency naturalCurrency(GenericFutureTrade trade, ReferenceData refData) {
-    return trade.getProduct().getCurrency();
+  public Currency naturalCurrency(GenericFutureOptionTrade trade, ReferenceData refData) {
+    return target.getSecurityId().resolve(refData).getCurrency();
   }
 
   //-------------------------------------------------------------------------
   @Override
-  public FunctionRequirements requirements(GenericFutureTrade trade, Set<Measure> measures, ReferenceData refData) {
-    QuoteKey key = QuoteKey.of(trade.getSecurity().getStandardId());
+  public FunctionRequirements requirements(GenericFutureOptionTrade trade, Set<Measure> measures, ReferenceData refData) {
+    QuoteKey key = QuoteKey.of(trade.getSecurityId().getStandardId());
 
     return FunctionRequirements.builder()
         .singleValueRequirements(ImmutableSet.of(key))
-        .outputCurrencies(trade.getProduct().getCurrency())
+        .outputCurrencies(trade.getSecurityId().resolve(refData).getCurrency())
         .build();
   }
 
   //-------------------------------------------------------------------------
   @Override
   public Map<Measure, Result<?>> calculate(
-      GenericFutureTrade trade,
+      EtdTrade trade,
       Set<Measure> measures,
       CalculationMarketData scenarioMarketData,
       ReferenceData refData) {
 
+    // resolve the trade once for all measures and all scenarios
+    ResolvedGenericEtdTrade resolved = trade.resolve(refData);
+
     // loop around measures, calculating all scenarios for one measure
     Map<Measure, Result<?>> results = new HashMap<>();
     for (Measure measure : measures) {
-      results.put(measure, calculate(measure, trade, scenarioMarketData));
+      results.put(measure, calculate(measure, resolved, scenarioMarketData));
     }
     // The calculated value is the same for these two measures but they are handled differently WRT FX conversion
     FunctionUtils.duplicateResult(Measures.PRESENT_VALUE, Measures.PRESENT_VALUE_MULTI_CCY, results);
@@ -99,7 +103,7 @@ public class GenericFutureCalculationFunction
   // calculate one measure
   private Result<?> calculate(
       Measure measure,
-      GenericFutureTrade trade,
+      ResolvedGenericEtdTrade trade,
       CalculationMarketData scenarioMarketData) {
 
     SingleMeasureCalculation calculator = CALCULATORS.get(measure);
@@ -113,7 +117,7 @@ public class GenericFutureCalculationFunction
   @FunctionalInterface
   interface SingleMeasureCalculation {
     public abstract ScenarioResult<?> calculate(
-        GenericFutureTrade trade,
+        ResolvedGenericEtdTrade trade,
         CalculationMarketData marketData);
   }
 
