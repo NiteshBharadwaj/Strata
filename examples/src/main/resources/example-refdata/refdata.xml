@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean type="com.opengamma.strata.basics.market.ImmutableReferenceData">
+ <values>
+  <entry>
+   <item type="com.opengamma.strata.product.etd.SecurityId">OG-Future~Eurex-FGBL-Mar14</item>
+   <item type="com.opengamma.strata.product.etd.GenericEtd">
+    <securityId>OG-Future~Eurex-FGBL-Mar14</securityId>
+    <productId>Eurex~FGBL</productId>
+    <contractSize>1</contractSize>
+    <tickSize>0.01</tickSize>
+    <tickValue>EUR 10</tickValue>
+   </item>
+  </entry>
+  <entry>
+   <item type="SecurityId">OG-Future~CME-ED-Mar14</item>
+   <item type="GenericEtd">
+    <securityId>OG-Future~CME-ED-Mar14</securityId>
+    <productId>CME~ED</productId>
+    <contractSize>1</contractSize>
+    <tickSize>0.005</tickSize>
+    <tickValue>USD 12.5</tickValue>
+   </item>
+  </entry>
+  <entry>
+   <item type="SecurityId">OG-FutOpt~Eurex-OGBL-Mar14-C150</item>
+   <item type="GenericEtd">
+    <securityId>OG-FutOpt~Eurex-OGBL-Mar14-C150</securityId>
+    <productId>Eurex~FGBL</productId>
+    <contractSize>1</contractSize>
+    <tickSize>0.01</tickSize>
+    <tickValue>EUR 10</tickValue>
+   </item>
+  </entry>
+ </values>
+</bean>

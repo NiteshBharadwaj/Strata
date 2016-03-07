@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bean type="com.opengamma.strata.examples.report.TradePortfolio">
+ <trades>
+  <item type="com.opengamma.strata.product.etd.EtdTrade">
+   <tradeInfo>
+    <counterparty>mn~Dealer G</counterparty>
+    <settlementDate>2013-12-15</settlementDate>
+    <attributes>
+     <entry key="description">Euro-Bund Mar14</entry>
+    </attributes>
+   </tradeInfo>
+   <securityId>OG-Future~Eurex-FGBL-Mar14</securityId>
+   <quantity>20</quantity>
+   <initialPrice>99.55</initialPrice>
+  </item>
+  <item type="EtdTrade">
+   <tradeInfo>
+    <counterparty>mn~Dealer G</counterparty>
+    <settlementDate>2013-12-18</settlementDate>
+    <attributes>
+     <entry key="description">EuroDollar Mar14</entry>
+    </attributes>
+   </tradeInfo>
+   <securityId>OG-Future~CME-ED-Mar14</securityId>
+   <quantity>50</quantity>
+   <initialPrice>99.55</initialPrice>
+  </item>
+  <item type="EtdTrade">
+   <tradeInfo>
+    <counterparty>mn~Dealer G</counterparty>
+    <settlementDate>2013-01-15</settlementDate>
+    <attributes>
+     <entry key="description">Call on Euro-Bund Mar14</entry>
+    </attributes>
+   </tradeInfo>
+   <securityId>OG-FutOpt~Eurex-OGBL-Mar14-C150</securityId>
+   <quantity>20</quantity>
+   <initialPrice>1.6</initialPrice>
+  </item>
+ </trades>
+</bean>

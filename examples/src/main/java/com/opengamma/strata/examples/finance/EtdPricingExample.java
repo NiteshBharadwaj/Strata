@@ -9,7 +9,6 @@ import static com.opengamma.strata.basics.currency.Currency.EUR;
 import static com.opengamma.strata.basics.currency.Currency.USD;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -28,23 +27,42 @@ import com.opengamma.strata.examples.data.ExampleData;
 import com.opengamma.strata.examples.marketdata.ExampleMarketData;
 import com.opengamma.strata.examples.marketdata.ExampleMarketDataBuilder;
 import com.opengamma.strata.function.StandardComponents;
-import com.opengamma.strata.product.SecurityLink;
 import com.opengamma.strata.product.TradeInfo;
-import com.opengamma.strata.product.UnitSecurity;
-import com.opengamma.strata.product.future.GenericFuture;
-import com.opengamma.strata.product.future.GenericFutureOption;
-import com.opengamma.strata.product.future.GenericFutureOptionTrade;
-import com.opengamma.strata.product.future.GenericFutureTrade;
+import com.opengamma.strata.product.etd.EtdTrade;
+import com.opengamma.strata.product.etd.GenericEtd;
+import com.opengamma.strata.product.etd.SecurityId;
 import com.opengamma.strata.report.ReportCalculationResults;
 import com.opengamma.strata.report.trade.TradeReport;
 import com.opengamma.strata.report.trade.TradeReportTemplate;
 
 /**
- * Example to illustrate using the engine to price generic Futures.
+ * Example to illustrate using the engine to price generic ETDs.
  * <p>
  * This makes use of the example engine and the example market data environment.
  */
-public class GenericFuturePricingExample {
+public class EtdPricingExample {
+
+  private static final SecurityId FUTURE_ID1 = SecurityId.of("OG-Future", "Eurex-FGBL-Mar14");
+  private static final GenericEtd FUTURE1 = GenericEtd.builder()
+      .securityId(FUTURE_ID1)
+      .productId(StandardId.of("Eurex", "FGBL"))
+      .tickSize(0.01)
+      .tickValue(CurrencyAmount.of(EUR, 10))
+      .build();
+  private static final SecurityId FUTURE_ID2 = SecurityId.of("OG-Future", "CME-ED-Mar14");
+  private static final GenericEtd FUTURE2 = GenericEtd.builder()
+      .securityId(FUTURE_ID2)
+      .productId(StandardId.of("CME", "ED"))
+      .tickSize(0.005)
+      .tickValue(CurrencyAmount.of(USD, 12.5))
+      .build();
+  private static final SecurityId OPTION_ID1 = SecurityId.of("OG-FutOpt", "Eurex-OGBL-Mar14-C150");
+  private static final GenericEtd OPTION1 = GenericEtd.builder()
+      .securityId(OPTION_ID1)
+      .productId(StandardId.of("Eurex", "OGBL"))
+      .tickSize(0.01)
+      .tickValue(CurrencyAmount.of(EUR, 10))
+      .build();
 
   /**
    * Runs the example, pricing the instruments, producing the output as an ASCII table.
@@ -82,7 +100,8 @@ public class GenericFuturePricingExample {
     MarketEnvironment marketSnapshot = marketDataBuilder.buildSnapshot(valuationDate);
 
     // the reference data, such as holidays and securities
-    ReferenceData refData = ReferenceData.standard();
+    ReferenceData refData = referenceData();
+    //.combinedWith(ExampleReferenceData.refData());
 
     // calculate the results
     Results results = runner.calculateSingleScenario(rules, trades, columns, marketSnapshot, refData);
@@ -91,26 +110,22 @@ public class GenericFuturePricingExample {
     ReportCalculationResults calculationResults =
         ReportCalculationResults.of(valuationDate, trades, columns, results, refData);
 
-    TradeReportTemplate reportTemplate = ExampleData.loadTradeReportTemplate("future-report-template");
+    TradeReportTemplate reportTemplate = ExampleData.loadTradeReportTemplate("etd-report-template");
     TradeReport tradeReport = TradeReport.of(calculationResults, reportTemplate);
     tradeReport.writeAsciiTable(System.out);
   }
 
-  //-----------------------------------------------------------------------  
-  // create a GenericFuture trade
-  private static Trade createFutureTrade1() {
-    GenericFuture product = GenericFuture.builder()
-        .productId(StandardId.of("Eurex", "FGBL"))
-        .expiryMonth(YearMonth.of(2014, 3))
-        .expiryDate(LocalDate.of(2014, 3, 13))
-        .tickSize(0.01)
-        .tickValue(CurrencyAmount.of(EUR, 10))
-        .build();
+  //-----------------------------------------------------------------------
+  private static ReferenceData referenceData() {
+    ReferenceData securities = ReferenceData.of(ImmutableMap.of(
+        FUTURE_ID1, FUTURE1, FUTURE_ID2, FUTURE2, OPTION_ID1, OPTION1));
+    return ReferenceData.standard().combinedWith(securities);
+  }
 
-    return GenericFutureTrade.builder()
-        .securityLink(SecurityLink.resolved(UnitSecurity.builder(product)
-            .standardId(StandardId.of("OG-Future", "Eurex-FGBL-Mar14"))
-            .build()))
+  // create an ETD trade
+  private static Trade createFutureTrade1() {
+    return EtdTrade.builder()
+        .securityId(FUTURE_ID1)
         .tradeInfo(TradeInfo.builder()
             .attributes(ImmutableMap.of("description", "Euro-Bund Mar14"))
             .counterparty(StandardId.of("mn", "Dealer G"))
@@ -121,20 +136,10 @@ public class GenericFuturePricingExample {
         .build();
   }
 
-  // create a GenericFuture trade
+  // create an ETD trade
   private static Trade createFutureTrade2() {
-    GenericFuture product = GenericFuture.builder()
-        .productId(StandardId.of("CME", "ED"))
-        .expiryMonth(YearMonth.of(2014, 3))
-        .expiryDate(LocalDate.of(2014, 3, 10))
-        .tickSize(0.005)
-        .tickValue(CurrencyAmount.of(USD, 12.5))
-        .build();
-
-    return GenericFutureTrade.builder()
-        .securityLink(SecurityLink.resolved(UnitSecurity.builder(product)
-            .standardId(StandardId.of("OG-Future", "CME-ED-Mar14"))
-            .build()))
+    return EtdTrade.builder()
+        .securityId(FUTURE_ID2)
         .tradeInfo(TradeInfo.builder()
             .attributes(ImmutableMap.of("description", "EuroDollar Mar14"))
             .counterparty(StandardId.of("mn", "Dealer G"))
@@ -145,31 +150,10 @@ public class GenericFuturePricingExample {
         .build();
   }
 
-  // create a GenericFutureOption trade
+  // create an ETD trade
   private static Trade createOptionTrade1() {
-    GenericFuture future = GenericFuture.builder()
-        .productId(StandardId.of("Eurex", "FGBL"))
-        .expiryMonth(YearMonth.of(2014, 3))
-        .expiryDate(LocalDate.of(2014, 3, 13))
-        .tickSize(0.01)
-        .tickValue(CurrencyAmount.of(EUR, 10))
-        .build();
-
-    GenericFutureOption product = GenericFutureOption.builder()
-        .productId(StandardId.of("Eurex", "OGBL"))
-        .expiryMonth(YearMonth.of(2014, 3))
-        .expiryDate(LocalDate.of(2014, 3, 10))
-        .tickSize(0.01)
-        .tickValue(CurrencyAmount.of(EUR, 10))
-        .underlyingLink(SecurityLink.resolved(UnitSecurity.builder(future)
-            .standardId(StandardId.of("OG-Future", "Eurex-FGBL-Mar14"))
-            .build()))
-        .build();
-
-    return GenericFutureOptionTrade.builder()
-        .securityLink(SecurityLink.resolved(UnitSecurity.builder(product)
-            .standardId(StandardId.of("OG-FutOpt", "Eurex-OGBL-Mar14-C150"))
-            .build()))
+    return EtdTrade.builder()
+        .securityId(OPTION_ID1)
         .tradeInfo(TradeInfo.builder()
             .attributes(ImmutableMap.of("description", "Call on Euro-Bund Mar14"))
             .counterparty(StandardId.of("mn", "Dealer G"))

@@ -16,20 +16,20 @@ import com.opengamma.strata.product.etd.EtdTrade;
  * Function groups are used in pricing rules to allow the engine to calculate the
  * measures provided by the functions in the group.
  */
-public final class GenericEtdFunctionGroups {
+public final class EtdFunctionGroups {
 
   /**
    * The group with pricers based on market methods.
    */
   private static final FunctionGroup<EtdTrade> MARKET_GROUP =
       DefaultFunctionGroup.builder(EtdTrade.class).name("EtdTradeMarket")
-          .addFunction(Measures.PRESENT_VALUE, GenericEtdCalculationFunction.class)
+          .addFunction(Measures.PRESENT_VALUE, EtdCalculationFunction.class)
           .build();
 
   /**
    * Restricted constructor.
    */
-  private GenericEtdFunctionGroups() {
+  private EtdFunctionGroups() {
   }
 
   //-------------------------------------------------------------------------

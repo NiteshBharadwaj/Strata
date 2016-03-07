@@ -18,10 +18,10 @@ import com.opengamma.strata.product.etd.ResolvedGenericEtdTrade;
  * <p>
  * Each method corresponds to a measure, typically calculated by one or more calls to the pricer.
  */
-class GenericEtdMeasureCalculations {
+class EtdMeasureCalculations {
 
   // restricted constructor
-  private GenericEtdMeasureCalculations() {
+  private EtdMeasureCalculations() {
   }
 
   //-------------------------------------------------------------------------

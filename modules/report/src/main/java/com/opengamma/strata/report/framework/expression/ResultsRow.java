@@ -18,8 +18,9 @@ import com.opengamma.strata.collect.result.Result;
 import com.opengamma.strata.function.StandardComponents;
 import com.opengamma.strata.product.Product;
 import com.opengamma.strata.product.ProductTrade;
-import com.opengamma.strata.product.Security;
-import com.opengamma.strata.product.SecurityTrade;
+import com.opengamma.strata.product.etd.Security;
+import com.opengamma.strata.product.etd.SecurityId;
+import com.opengamma.strata.product.etd.SecurityTrade;
 import com.opengamma.strata.report.ReportCalculationResults;
 
 /**
@@ -77,10 +78,11 @@ class ResultsRow {
    *
    * @return the security from the row
    */
-  Result<Security<?>> getSecurity() {
+  Result<Security> getSecurity() {
     Trade trade = getTrade();
     if (trade instanceof SecurityTrade) {
-      return Result.success(((SecurityTrade<?>) trade).getSecurity());
+      SecurityId securityId = ((SecurityTrade) trade).getSecurityId();
+      return Result.success(securityId.resolve(results.getReferenceData()));
     }
     return Result.failure(FailureReason.INVALID_INPUT, "Trade does not contain a security");
   }

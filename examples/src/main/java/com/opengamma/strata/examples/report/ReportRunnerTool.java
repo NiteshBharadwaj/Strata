@@ -31,6 +31,7 @@ import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.Messages;
 import com.opengamma.strata.examples.marketdata.ExampleMarketData;
 import com.opengamma.strata.examples.marketdata.ExampleMarketDataBuilder;
+import com.opengamma.strata.examples.marketdata.ExampleReferenceData;
 import com.opengamma.strata.function.StandardComponents;
 import com.opengamma.strata.product.FinanceTrade;
 import com.opengamma.strata.report.Report;
@@ -200,7 +201,7 @@ public class ReportRunnerTool implements AutoCloseable {
     }
 
     // the reference data, such as holidays and securities
-    ReferenceData refData = ReferenceData.standard();
+    ReferenceData refData = ExampleReferenceData.refData();
 
     // calculate the results
     CalculationTasks tasks = CalculationTasks.of(rules, trades, columns);

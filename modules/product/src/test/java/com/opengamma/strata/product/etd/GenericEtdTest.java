@@ -34,6 +34,8 @@ public class GenericEtdTest {
   private static final SecurityInfoType<String> INFO_TYPE = SecurityInfoType.of("Key");
   private static final SecurityInfoType<String> INFO_TYPE2 = SecurityInfoType.of("Key2");
   private static final ImmutableMap<SecurityInfoType<?>, Object> INFO_MAP = ImmutableMap.of(INFO_TYPE, "Test");
+  private static final double CONTRACT_SIZE = 1;
+  private static final double CONTRACT_SIZE2 = 5;
   private static final double TICK_SIZE = 0.1;
   private static final double TICK_SIZE2 = 0.2;
   private static final CurrencyAmount TICK_VALUE = CurrencyAmount.of(GBP, 25);
@@ -50,6 +52,7 @@ public class GenericEtdTest {
     assertEquals(test.findInfo(INFO_TYPE), Optional.of("Test"));
     assertEquals(test.findInfo(INFO_TYPE2), Optional.empty());
     assertEquals(test.getProductId(), PRODUCT_ID);
+    assertEquals(test.getContractSize(), CONTRACT_SIZE);
     assertEquals(test.getTickSize(), TICK_SIZE);
     assertEquals(test.getTickValue(), TICK_VALUE);
     assertEquals(test.toGenericEtd(), test);
@@ -71,6 +74,7 @@ public class GenericEtdTest {
         .securityId(SECURITY_ID)
         .info(INFO_MAP)
         .productId(PRODUCT_ID)
+        .contractSize(CONTRACT_SIZE)
         .tickSize(TICK_SIZE)
         .tickValue(TICK_VALUE)
         .build();
@@ -80,6 +84,7 @@ public class GenericEtdTest {
     return GenericEtd.builder()
         .securityId(SECURITY_ID2)
         .productId(PRODUCT_ID2)
+        .contractSize(CONTRACT_SIZE2)
         .tickSize(TICK_SIZE2)
         .tickValue(TICK_VALUE2)
         .build();

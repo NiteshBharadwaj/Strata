@@ -3,14 +3,14 @@
  *
  * Please see distribution for license.
  */
-package com.opengamma.strata.function.calculation.future;
+package com.opengamma.strata.function.calculation.etd;
 
 import static com.opengamma.strata.basics.currency.Currency.EUR;
 import static com.opengamma.strata.collect.TestHelper.coverPrivateConstructor;
+import static com.opengamma.strata.collect.TestHelper.date;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.Set;
 
 import org.testng.annotations.Test;
@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.opengamma.strata.basics.currency.Currency;
 import com.opengamma.strata.basics.currency.CurrencyAmount;
+import com.opengamma.strata.basics.market.ImmutableReferenceData;
 import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.calc.config.FunctionConfig;
 import com.opengamma.strata.calc.config.Measure;
@@ -30,72 +31,64 @@ import com.opengamma.strata.calc.marketdata.FunctionRequirements;
 import com.opengamma.strata.calc.runner.function.result.CurrencyValuesArray;
 import com.opengamma.strata.collect.id.StandardId;
 import com.opengamma.strata.collect.result.Result;
-import com.opengamma.strata.function.calculation.etd.GenericEtdCalculationFunction;
-import com.opengamma.strata.function.calculation.etd.GenericEtdFunctionGroups;
-import com.opengamma.strata.function.calculation.etd.GenericEtdMeasureCalculations;
 import com.opengamma.strata.function.marketdata.curve.TestMarketDataMap;
 import com.opengamma.strata.market.key.QuoteKey;
-import com.opengamma.strata.product.SecurityLink;
 import com.opengamma.strata.product.TradeInfo;
-import com.opengamma.strata.product.UnitSecurity;
-import com.opengamma.strata.product.future.GenericFuture;
-import com.opengamma.strata.product.future.GenericFutureTrade;
+import com.opengamma.strata.product.etd.EtdTrade;
+import com.opengamma.strata.product.etd.GenericEtd;
+import com.opengamma.strata.product.etd.SecurityId;
 
 /**
- * Test {@link GenericEtdCalculationFunction}.
+ * Test {@link EtdCalculationFunction}.
  */
 @Test
-public class GenericFutureCalculationFunctionTest {
+public class EtdCalculationFunctionTest {
 
-  private static final ReferenceData REF_DATA = ReferenceData.standard();
+  private static final LocalDate VAL_DATE = date(2016, 6, 30);
   private static final double MARKET_PRICE = 99.42;
   private static final double TICK_SIZE = 0.01;
   private static final int TICK_VALUE = 10;
   private static final int QUANTITY = 20;
-  private static final StandardId SEC_ID = StandardId.of("OG-Future", "Foo-Womble-Mar14");
-  private static final GenericFuture FUTURE = GenericFuture.builder()
+  private static final SecurityId SEC_ID = SecurityId.of("OG-Future", "Foo-Womble-Mar14");
+  private static final GenericEtd SECURITY = GenericEtd.builder()
+      .securityId(SEC_ID)
       .productId(StandardId.of("Foo", "Womble"))
-      .expiryMonth(YearMonth.of(2014, 3))
-      .expiryDate(LocalDate.of(2014, 3, 13))
       .tickSize(TICK_SIZE)
       .tickValue(CurrencyAmount.of(EUR, TICK_VALUE))
       .build();
-  public static final GenericFutureTrade TRADE = GenericFutureTrade.builder()
-      .securityLink(SecurityLink.resolved(
-          UnitSecurity.builder(FUTURE)
-              .standardId(SEC_ID)
-              .build()))
+  public static final EtdTrade TRADE = EtdTrade.builder()
+      .securityId(SEC_ID)
       .tradeInfo(TradeInfo.builder()
           .settlementDate(LocalDate.of(2013, 12, 15))
           .build())
       .quantity(QUANTITY)
       .initialPrice(99.550)
       .build();
-  private static final Currency CURRENCY = TRADE.getProduct().getCurrency();
-  private static final LocalDate VAL_DATE = TRADE.getProduct().getExpiryDate().get().minusDays(7);
+  private static final Currency CURRENCY = SECURITY.getCurrency();
+  private static final ReferenceData REF_DATA = ImmutableReferenceData.of(SEC_ID, SECURITY);
 
   //-------------------------------------------------------------------------
   public void test_group() {
-    FunctionGroup<GenericFutureTrade> test = GenericEtdFunctionGroups.market();
+    FunctionGroup<EtdTrade> test = EtdFunctionGroups.market();
     assertThat(test.configuredMeasures(TRADE)).contains(
         Measures.PRESENT_VALUE);
-    FunctionConfig<GenericFutureTrade> config =
-        GenericEtdFunctionGroups.market().functionConfig(TRADE, Measures.PRESENT_VALUE).get();
-    assertThat(config.createFunction()).isInstanceOf(GenericEtdCalculationFunction.class);
+    FunctionConfig<EtdTrade> config =
+        EtdFunctionGroups.market().functionConfig(TRADE, Measures.PRESENT_VALUE).get();
+    assertThat(config.createFunction()).isInstanceOf(EtdCalculationFunction.class);
   }
 
   public void test_requirementsAndCurrency() {
-    GenericEtdCalculationFunction function = new GenericEtdCalculationFunction();
+    EtdCalculationFunction function = new EtdCalculationFunction();
     Set<Measure> measures = function.supportedMeasures();
     FunctionRequirements reqs = function.requirements(TRADE, measures, REF_DATA);
     assertThat(reqs.getOutputCurrencies()).containsOnly(CURRENCY);
-    assertThat(reqs.getSingleValueRequirements()).isEqualTo(ImmutableSet.of(QuoteKey.of(SEC_ID)));
+    assertThat(reqs.getSingleValueRequirements()).isEqualTo(ImmutableSet.of(QuoteKey.of(SEC_ID.getStandardId())));
     assertThat(reqs.getTimeSeriesRequirements()).isEmpty();
     assertThat(function.naturalCurrency(TRADE, REF_DATA)).isEqualTo(CURRENCY);
   }
 
   public void test_presentValue() {
-    GenericEtdCalculationFunction function = new GenericEtdCalculationFunction();
+    EtdCalculationFunction function = new EtdCalculationFunction();
     CalculationMarketData md = marketData();
     
     double unitPv = (MARKET_PRICE / TICK_SIZE) * TICK_VALUE;
@@ -113,15 +106,15 @@ public class GenericFutureCalculationFunctionTest {
   private CalculationMarketData marketData() {
     TestMarketDataMap md = new TestMarketDataMap(
         VAL_DATE,
-        ImmutableMap.of(QuoteKey.of(SEC_ID), MARKET_PRICE),
+        ImmutableMap.of(QuoteKey.of(SEC_ID.getStandardId()), MARKET_PRICE),
         ImmutableMap.of());
     return md;
   }
 
   //-------------------------------------------------------------------------
   public void coverage() {
-    coverPrivateConstructor(GenericEtdFunctionGroups.class);
-    coverPrivateConstructor(GenericEtdMeasureCalculations.class);
+    coverPrivateConstructor(EtdFunctionGroups.class);
+    coverPrivateConstructor(EtdMeasureCalculations.class);
   }
 
 }

@@ -37,6 +37,16 @@ public interface Etd
   public abstract StandardId getProductId();
 
   /**
+   * Gets the size of each contract.
+   * <p>
+   * The contract size is defined as a positive decimal number.
+   * In many cases, the contract size will be one.
+   * 
+   * @return the contract size
+   */
+  public abstract double getContractSize();
+
+  /**
    * Gets the size of each tick.
    * <p>
    * The tick size is defined as a positive decimal number.

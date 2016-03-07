@@ -35,7 +35,7 @@ import com.opengamma.strata.product.etd.ResolvedGenericEtdTrade;
  *   <li>{@linkplain Measures#PRESENT_VALUE_MULTI_CCY Present value with no currency conversion}
  * </ul>
  */
-public class GenericEtdCalculationFunction
+public class EtdCalculationFunction
     implements CalculationFunction<EtdTrade> {
 
   /**
@@ -43,7 +43,7 @@ public class GenericEtdCalculationFunction
    */
   private static final ImmutableMap<Measure, SingleMeasureCalculation> CALCULATORS =
       ImmutableMap.<Measure, SingleMeasureCalculation>builder()
-          .put(Measures.PRESENT_VALUE, GenericEtdMeasureCalculations::presentValue)
+          .put(Measures.PRESENT_VALUE, EtdMeasureCalculations::presentValue)
           .build();
 
   private static final ImmutableSet<Measure> MEASURES = ImmutableSet.<Measure>builder()
@@ -54,7 +54,7 @@ public class GenericEtdCalculationFunction
   /**
    * Creates an instance.
    */
-  public GenericEtdCalculationFunction() {
+  public EtdCalculationFunction() {
   }
 
   //-------------------------------------------------------------------------
@@ -64,13 +64,13 @@ public class GenericEtdCalculationFunction
   }
 
   @Override
-  public Currency naturalCurrency(GenericFutureOptionTrade trade, ReferenceData refData) {
-    return target.getSecurityId().resolve(refData).getCurrency();
+  public Currency naturalCurrency(EtdTrade trade, ReferenceData refData) {
+    return trade.getSecurityId().resolve(refData).getCurrency();
   }
 
   //-------------------------------------------------------------------------
   @Override
-  public FunctionRequirements requirements(GenericFutureOptionTrade trade, Set<Measure> measures, ReferenceData refData) {
+  public FunctionRequirements requirements(EtdTrade trade, Set<Measure> measures, ReferenceData refData) {
     QuoteKey key = QuoteKey.of(trade.getSecurityId().getStandardId());
 
     return FunctionRequirements.builder()

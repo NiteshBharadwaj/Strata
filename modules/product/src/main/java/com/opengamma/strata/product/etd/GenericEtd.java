@@ -14,6 +14,7 @@ import java.util.Set;
 import org.joda.beans.Bean;
 import org.joda.beans.BeanDefinition;
 import org.joda.beans.ImmutableBean;
+import org.joda.beans.ImmutableDefaults;
 import org.joda.beans.JodaBeanUtils;
 import org.joda.beans.MetaProperty;
 import org.joda.beans.Property;
@@ -73,6 +74,14 @@ public final class GenericEtd
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final StandardId productId;
   /**
+   * The size of each contract, defaulted to one.
+   * <p>
+   * The contract size is defined as a positive decimal number.
+   * In many cases, the contract size will be one.
+   */
+  @PropertyDefinition(validate = "ArgChecker.notNegativeOrZero", overrideGet = true)
+  private final double contractSize;
+  /**
    * The size of each tick.
    * <p>
    * The tick size is defined as a positive decimal number.
@@ -87,6 +96,12 @@ public final class GenericEtd
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final CurrencyAmount tickValue;
+
+  //-------------------------------------------------------------------------
+  @ImmutableDefaults
+  private static void applyDefaults(Builder builder) {
+    builder.contractSize = 1;
+  }
 
   //-----------------------------------------------------------------------
   /**
@@ -148,16 +163,19 @@ public final class GenericEtd
       SecurityId securityId,
       Map<SecurityInfoType<?>, Object> info,
       StandardId productId,
+      double contractSize,
       double tickSize,
       CurrencyAmount tickValue) {
     JodaBeanUtils.notNull(securityId, "securityId");
     JodaBeanUtils.notNull(info, "info");
     JodaBeanUtils.notNull(productId, "productId");
+    ArgChecker.notNegativeOrZero(contractSize, "contractSize");
     ArgChecker.notNegativeOrZero(tickSize, "tickSize");
     JodaBeanUtils.notNull(tickValue, "tickValue");
     this.securityId = securityId;
     this.info = ImmutableMap.copyOf(info);
     this.productId = productId;
+    this.contractSize = contractSize;
     this.tickSize = tickSize;
     this.tickValue = tickValue;
   }
@@ -224,6 +242,19 @@ public final class GenericEtd
 
   //-----------------------------------------------------------------------
   /**
+   * Gets the size of each contract, defaulted to one.
+   * <p>
+   * The contract size is defined as a positive decimal number.
+   * In many cases, the contract size will be one.
+   * @return the value of the property
+   */
+  @Override
+  public double getContractSize() {
+    return contractSize;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
    * Gets the size of each tick.
    * <p>
    * The tick size is defined as a positive decimal number.
@@ -266,6 +297,7 @@ public final class GenericEtd
       return JodaBeanUtils.equal(securityId, other.securityId) &&
           JodaBeanUtils.equal(info, other.info) &&
           JodaBeanUtils.equal(productId, other.productId) &&
+          JodaBeanUtils.equal(contractSize, other.contractSize) &&
           JodaBeanUtils.equal(tickSize, other.tickSize) &&
           JodaBeanUtils.equal(tickValue, other.tickValue);
     }
@@ -278,6 +310,7 @@ public final class GenericEtd
     hash = hash * 31 + JodaBeanUtils.hashCode(securityId);
     hash = hash * 31 + JodaBeanUtils.hashCode(info);
     hash = hash * 31 + JodaBeanUtils.hashCode(productId);
+    hash = hash * 31 + JodaBeanUtils.hashCode(contractSize);
     hash = hash * 31 + JodaBeanUtils.hashCode(tickSize);
     hash = hash * 31 + JodaBeanUtils.hashCode(tickValue);
     return hash;
@@ -285,11 +318,12 @@ public final class GenericEtd
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(192);
+    StringBuilder buf = new StringBuilder(224);
     buf.append("GenericEtd{");
     buf.append("securityId").append('=').append(securityId).append(',').append(' ');
     buf.append("info").append('=').append(info).append(',').append(' ');
     buf.append("productId").append('=').append(productId).append(',').append(' ');
+    buf.append("contractSize").append('=').append(contractSize).append(',').append(' ');
     buf.append("tickSize").append('=').append(tickSize).append(',').append(' ');
     buf.append("tickValue").append('=').append(JodaBeanUtils.toString(tickValue));
     buf.append('}');
@@ -323,6 +357,11 @@ public final class GenericEtd
     private final MetaProperty<StandardId> productId = DirectMetaProperty.ofImmutable(
         this, "productId", GenericEtd.class, StandardId.class);
     /**
+     * The meta-property for the {@code contractSize} property.
+     */
+    private final MetaProperty<Double> contractSize = DirectMetaProperty.ofImmutable(
+        this, "contractSize", GenericEtd.class, Double.TYPE);
+    /**
      * The meta-property for the {@code tickSize} property.
      */
     private final MetaProperty<Double> tickSize = DirectMetaProperty.ofImmutable(
@@ -340,6 +379,7 @@ public final class GenericEtd
         "securityId",
         "info",
         "productId",
+        "contractSize",
         "tickSize",
         "tickValue");
 
@@ -358,6 +398,8 @@ public final class GenericEtd
           return info;
         case -1051830678:  // productId
           return productId;
+        case -1402368973:  // contractSize
+          return contractSize;
         case 1936822078:  // tickSize
           return tickSize;
         case -85538348:  // tickValue
@@ -407,6 +449,14 @@ public final class GenericEtd
     }
 
     /**
+     * The meta-property for the {@code contractSize} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<Double> contractSize() {
+      return contractSize;
+    }
+
+    /**
      * The meta-property for the {@code tickSize} property.
      * @return the meta-property, not null
      */
@@ -432,6 +482,8 @@ public final class GenericEtd
           return ((GenericEtd) bean).getInfo();
         case -1051830678:  // productId
           return ((GenericEtd) bean).getProductId();
+        case -1402368973:  // contractSize
+          return ((GenericEtd) bean).getContractSize();
         case 1936822078:  // tickSize
           return ((GenericEtd) bean).getTickSize();
         case -85538348:  // tickValue
@@ -460,6 +512,7 @@ public final class GenericEtd
     private SecurityId securityId;
     private Map<SecurityInfoType<?>, Object> info = ImmutableMap.of();
     private StandardId productId;
+    private double contractSize;
     private double tickSize;
     private CurrencyAmount tickValue;
 
@@ -467,6 +520,7 @@ public final class GenericEtd
      * Restricted constructor.
      */
     private Builder() {
+      applyDefaults(this);
     }
 
     /**
@@ -477,6 +531,7 @@ public final class GenericEtd
       this.securityId = beanToCopy.getSecurityId();
       this.info = beanToCopy.getInfo();
       this.productId = beanToCopy.getProductId();
+      this.contractSize = beanToCopy.getContractSize();
       this.tickSize = beanToCopy.getTickSize();
       this.tickValue = beanToCopy.getTickValue();
     }
@@ -491,6 +546,8 @@ public final class GenericEtd
           return info;
         case -1051830678:  // productId
           return productId;
+        case -1402368973:  // contractSize
+          return contractSize;
         case 1936822078:  // tickSize
           return tickSize;
         case -85538348:  // tickValue
@@ -512,6 +569,9 @@ public final class GenericEtd
           break;
         case -1051830678:  // productId
           this.productId = (StandardId) newValue;
+          break;
+        case -1402368973:  // contractSize
+          this.contractSize = (Double) newValue;
           break;
         case 1936822078:  // tickSize
           this.tickSize = (Double) newValue;
@@ -555,6 +615,7 @@ public final class GenericEtd
           securityId,
           info,
           productId,
+          contractSize,
           tickSize,
           tickValue);
     }
@@ -610,6 +671,20 @@ public final class GenericEtd
     }
 
     /**
+     * Sets the size of each contract, defaulted to one.
+     * <p>
+     * The contract size is defined as a positive decimal number.
+     * In many cases, the contract size will be one.
+     * @param contractSize  the new value
+     * @return this, for chaining, not null
+     */
+    public Builder contractSize(double contractSize) {
+      ArgChecker.notNegativeOrZero(contractSize, "contractSize");
+      this.contractSize = contractSize;
+      return this;
+    }
+
+    /**
      * Sets the size of each tick.
      * <p>
      * The tick size is defined as a positive decimal number.
@@ -639,11 +714,12 @@ public final class GenericEtd
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(192);
+      StringBuilder buf = new StringBuilder(224);
       buf.append("GenericEtd.Builder{");
       buf.append("securityId").append('=').append(JodaBeanUtils.toString(securityId)).append(',').append(' ');
       buf.append("info").append('=').append(JodaBeanUtils.toString(info)).append(',').append(' ');
       buf.append("productId").append('=').append(JodaBeanUtils.toString(productId)).append(',').append(' ');
+      buf.append("contractSize").append('=').append(JodaBeanUtils.toString(contractSize)).append(',').append(' ');
       buf.append("tickSize").append('=').append(JodaBeanUtils.toString(tickSize)).append(',').append(' ');
       buf.append("tickValue").append('=').append(JodaBeanUtils.toString(tickValue));
       buf.append('}');

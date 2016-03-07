@@ -63,12 +63,12 @@ public class ExamplesTest {
   }
 
   //-------------------------------------------------------------------------
-  public void test_genericFuturePricing_standalone() {
-    assertValidCapturedAsciiTable(caputureSystemOut(() -> GenericFuturePricingExample.main(NO_ARGS)));
+  public void test_genericEtdPricing_standalone() {
+    assertValidCapturedAsciiTable(caputureSystemOut(() -> EtdPricingExample.main(NO_ARGS)));
   }
 
-  public void test_genericFuturePricing_tool() {
-    assertValidCapturedAsciiTable(caputureSystemOut(() -> ReportRunnerTool.main(toolArgs("future"))));
+  public void test_genericEtdPricing_tool() {
+    assertValidCapturedAsciiTable(caputureSystemOut(() -> ReportRunnerTool.main(toolArgs("etd"))));
   }
 
   //-------------------------------------------------------------------------
@@ -182,15 +182,15 @@ public class ExamplesTest {
   }
 
   private void assertValidCapturedAsciiTable(String captured) {
-    assertTrue(captured.contains("+------"), captured);
+    assertTrue(captured.contains("+------"), "Result did not contain ASCII table:" + captured);
     assertValidCaptured(captured);
   }
 
   private void assertValidCaptured(String captured) {
-    assertFalse(captured.contains("ERROR"), captured);
-    assertFalse(captured.contains("FAIL"), captured);
-    assertFalse(captured.contains("Exception"), captured);
-    assertFalse(captured.contains("drill down"), captured);
+    assertFalse(captured.contains("ERROR"), "Result contains 'ERROR':" + captured);
+    assertFalse(captured.contains("FAIL"), "Result contains 'FAIL':" + captured);
+    assertFalse(captured.contains("Exception"), "Result contains 'Exception':" + captured);
+    assertFalse(captured.contains("drill down"), "Result contains 'drill down':" + captured);
   }
 
 }
