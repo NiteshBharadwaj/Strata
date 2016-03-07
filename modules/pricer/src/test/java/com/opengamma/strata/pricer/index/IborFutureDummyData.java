@@ -22,6 +22,7 @@ import com.opengamma.strata.product.SecurityLink;
 import com.opengamma.strata.product.TradeInfo;
 import com.opengamma.strata.product.UnitSecurity;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
+import com.opengamma.strata.product.etd.SecurityId;
 import com.opengamma.strata.product.index.IborFuture;
 import com.opengamma.strata.product.index.IborFutureOption;
 import com.opengamma.strata.product.index.IborFutureOptionTrade;
@@ -52,6 +53,7 @@ public class IborFutureDummyData {
    * An IborFuture.
    */
   public static final IborFuture IBOR_FUTURE = IborFuture.builder()
+      .securityId(SecurityId.of(FUTURE_ID))
       .currency(GBP)
       .notional(NOTIONAL)
       .lastTradeDate(LAST_TRADE_DATE)
@@ -73,7 +75,7 @@ public class IborFutureDummyData {
    */
   public static final IborFutureTrade IBOR_FUTURE_TRADE = IborFutureTrade.builder()
       .tradeInfo(TradeInfo.builder().tradeDate(TRADE_DATE).build())
-      .securityLink(SecurityLink.resolved(IBOR_FUTURE_SECURITY))
+      .product(IBOR_FUTURE)
       .quantity(FUTURE_QUANTITY)
       .initialPrice(FUTURE_INITIAL_PRICE)
       .build();

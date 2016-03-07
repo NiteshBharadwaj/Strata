@@ -24,7 +24,6 @@ import org.joda.beans.impl.direct.DirectMetaProperty;
 import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
 import com.opengamma.strata.basics.market.ReferenceData;
-import com.opengamma.strata.collect.id.StandardId;
 import com.opengamma.strata.product.ResolvedTrade;
 import com.opengamma.strata.product.TradeInfo;
 
@@ -51,17 +50,12 @@ public final class ResolvedIborFutureTrade
   @PropertyDefinition(overrideGet = true)
   private final TradeInfo tradeInfo;
   /**
-   * The resolved futures product.
+   * The futures product that was traded.
    * <p>
-   * The product captures the contracted financial details of the trade.
+   * The product captures the financial details of the contract.
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final ResolvedIborFuture product;
-  /**
-   * The identifier used to refer to the security.
-   */
-  @PropertyDefinition(validate = "notNull")
-  private final StandardId securityStandardId;
   /**
    * The quantity, indicating the number of contracts in the trade.
    * <p>
@@ -115,14 +109,11 @@ public final class ResolvedIborFutureTrade
   private ResolvedIborFutureTrade(
       TradeInfo tradeInfo,
       ResolvedIborFuture product,
-      StandardId securityStandardId,
       long quantity,
       double initialPrice) {
     JodaBeanUtils.notNull(product, "product");
-    JodaBeanUtils.notNull(securityStandardId, "securityStandardId");
     this.tradeInfo = tradeInfo;
     this.product = product;
-    this.securityStandardId = securityStandardId;
     this.quantity = quantity;
     this.initialPrice = initialPrice;
   }
@@ -156,23 +147,14 @@ public final class ResolvedIborFutureTrade
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the resolved futures product.
+   * Gets the futures product that was traded.
    * <p>
-   * The product captures the contracted financial details of the trade.
+   * The product captures the financial details of the contract.
    * @return the value of the property, not null
    */
   @Override
   public ResolvedIborFuture getProduct() {
     return product;
-  }
-
-  //-----------------------------------------------------------------------
-  /**
-   * Gets the identifier used to refer to the security.
-   * @return the value of the property, not null
-   */
-  public StandardId getSecurityStandardId() {
-    return securityStandardId;
   }
 
   //-----------------------------------------------------------------------
@@ -217,7 +199,6 @@ public final class ResolvedIborFutureTrade
       ResolvedIborFutureTrade other = (ResolvedIborFutureTrade) obj;
       return JodaBeanUtils.equal(tradeInfo, other.tradeInfo) &&
           JodaBeanUtils.equal(product, other.product) &&
-          JodaBeanUtils.equal(securityStandardId, other.securityStandardId) &&
           (quantity == other.quantity) &&
           JodaBeanUtils.equal(initialPrice, other.initialPrice);
     }
@@ -229,7 +210,6 @@ public final class ResolvedIborFutureTrade
     int hash = getClass().hashCode();
     hash = hash * 31 + JodaBeanUtils.hashCode(tradeInfo);
     hash = hash * 31 + JodaBeanUtils.hashCode(product);
-    hash = hash * 31 + JodaBeanUtils.hashCode(securityStandardId);
     hash = hash * 31 + JodaBeanUtils.hashCode(quantity);
     hash = hash * 31 + JodaBeanUtils.hashCode(initialPrice);
     return hash;
@@ -237,11 +217,10 @@ public final class ResolvedIborFutureTrade
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(192);
+    StringBuilder buf = new StringBuilder(160);
     buf.append("ResolvedIborFutureTrade{");
     buf.append("tradeInfo").append('=').append(tradeInfo).append(',').append(' ');
     buf.append("product").append('=').append(product).append(',').append(' ');
-    buf.append("securityStandardId").append('=').append(securityStandardId).append(',').append(' ');
     buf.append("quantity").append('=').append(quantity).append(',').append(' ');
     buf.append("initialPrice").append('=').append(JodaBeanUtils.toString(initialPrice));
     buf.append('}');
@@ -269,11 +248,6 @@ public final class ResolvedIborFutureTrade
     private final MetaProperty<ResolvedIborFuture> product = DirectMetaProperty.ofImmutable(
         this, "product", ResolvedIborFutureTrade.class, ResolvedIborFuture.class);
     /**
-     * The meta-property for the {@code securityStandardId} property.
-     */
-    private final MetaProperty<StandardId> securityStandardId = DirectMetaProperty.ofImmutable(
-        this, "securityStandardId", ResolvedIborFutureTrade.class, StandardId.class);
-    /**
      * The meta-property for the {@code quantity} property.
      */
     private final MetaProperty<Long> quantity = DirectMetaProperty.ofImmutable(
@@ -290,7 +264,6 @@ public final class ResolvedIborFutureTrade
         this, null,
         "tradeInfo",
         "product",
-        "securityStandardId",
         "quantity",
         "initialPrice");
 
@@ -307,8 +280,6 @@ public final class ResolvedIborFutureTrade
           return tradeInfo;
         case -309474065:  // product
           return product;
-        case -593973224:  // securityStandardId
-          return securityStandardId;
         case -1285004149:  // quantity
           return quantity;
         case -423406491:  // initialPrice
@@ -350,14 +321,6 @@ public final class ResolvedIborFutureTrade
     }
 
     /**
-     * The meta-property for the {@code securityStandardId} property.
-     * @return the meta-property, not null
-     */
-    public MetaProperty<StandardId> securityStandardId() {
-      return securityStandardId;
-    }
-
-    /**
      * The meta-property for the {@code quantity} property.
      * @return the meta-property, not null
      */
@@ -381,8 +344,6 @@ public final class ResolvedIborFutureTrade
           return ((ResolvedIborFutureTrade) bean).getTradeInfo();
         case -309474065:  // product
           return ((ResolvedIborFutureTrade) bean).getProduct();
-        case -593973224:  // securityStandardId
-          return ((ResolvedIborFutureTrade) bean).getSecurityStandardId();
         case -1285004149:  // quantity
           return ((ResolvedIborFutureTrade) bean).getQuantity();
         case -423406491:  // initialPrice
@@ -410,7 +371,6 @@ public final class ResolvedIborFutureTrade
 
     private TradeInfo tradeInfo;
     private ResolvedIborFuture product;
-    private StandardId securityStandardId;
     private long quantity;
     private double initialPrice;
 
@@ -428,7 +388,6 @@ public final class ResolvedIborFutureTrade
     private Builder(ResolvedIborFutureTrade beanToCopy) {
       this.tradeInfo = beanToCopy.getTradeInfo();
       this.product = beanToCopy.getProduct();
-      this.securityStandardId = beanToCopy.getSecurityStandardId();
       this.quantity = beanToCopy.getQuantity();
       this.initialPrice = beanToCopy.getInitialPrice();
     }
@@ -441,8 +400,6 @@ public final class ResolvedIborFutureTrade
           return tradeInfo;
         case -309474065:  // product
           return product;
-        case -593973224:  // securityStandardId
-          return securityStandardId;
         case -1285004149:  // quantity
           return quantity;
         case -423406491:  // initialPrice
@@ -460,9 +417,6 @@ public final class ResolvedIborFutureTrade
           break;
         case -309474065:  // product
           this.product = (ResolvedIborFuture) newValue;
-          break;
-        case -593973224:  // securityStandardId
-          this.securityStandardId = (StandardId) newValue;
           break;
         case -1285004149:  // quantity
           this.quantity = (Long) newValue;
@@ -505,7 +459,6 @@ public final class ResolvedIborFutureTrade
       return new ResolvedIborFutureTrade(
           tradeInfo,
           product,
-          securityStandardId,
           quantity,
           initialPrice);
     }
@@ -524,26 +477,15 @@ public final class ResolvedIborFutureTrade
     }
 
     /**
-     * Sets the resolved futures product.
+     * Sets the futures product that was traded.
      * <p>
-     * The product captures the contracted financial details of the trade.
+     * The product captures the financial details of the contract.
      * @param product  the new value, not null
      * @return this, for chaining, not null
      */
     public Builder product(ResolvedIborFuture product) {
       JodaBeanUtils.notNull(product, "product");
       this.product = product;
-      return this;
-    }
-
-    /**
-     * Sets the identifier used to refer to the security.
-     * @param securityStandardId  the new value, not null
-     * @return this, for chaining, not null
-     */
-    public Builder securityStandardId(StandardId securityStandardId) {
-      JodaBeanUtils.notNull(securityStandardId, "securityStandardId");
-      this.securityStandardId = securityStandardId;
       return this;
     }
 
@@ -576,11 +518,10 @@ public final class ResolvedIborFutureTrade
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(192);
+      StringBuilder buf = new StringBuilder(160);
       buf.append("ResolvedIborFutureTrade.Builder{");
       buf.append("tradeInfo").append('=').append(JodaBeanUtils.toString(tradeInfo)).append(',').append(' ');
       buf.append("product").append('=').append(JodaBeanUtils.toString(product)).append(',').append(' ');
-      buf.append("securityStandardId").append('=').append(JodaBeanUtils.toString(securityStandardId)).append(',').append(' ');
       buf.append("quantity").append('=').append(JodaBeanUtils.toString(quantity)).append(',').append(' ');
       buf.append("initialPrice").append('=').append(JodaBeanUtils.toString(initialPrice));
       buf.append('}');

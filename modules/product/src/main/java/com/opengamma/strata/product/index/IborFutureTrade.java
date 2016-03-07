@@ -24,11 +24,8 @@ import org.joda.beans.impl.direct.DirectMetaProperty;
 import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
 import com.opengamma.strata.basics.market.ReferenceData;
-import com.opengamma.strata.collect.id.LinkResolver;
-import com.opengamma.strata.collect.id.StandardId;
+import com.opengamma.strata.product.ProductTrade;
 import com.opengamma.strata.product.ResolvableTrade;
-import com.opengamma.strata.product.SecurityLink;
-import com.opengamma.strata.product.SecurityTrade;
 import com.opengamma.strata.product.TradeInfo;
 
 /**
@@ -41,7 +38,7 @@ import com.opengamma.strata.product.TradeInfo;
  */
 @BeanDefinition
 public final class IborFutureTrade
-    implements SecurityTrade<IborFuture>, ResolvableTrade<ResolvedIborFutureTrade>, ImmutableBean, Serializable {
+    implements ProductTrade, ResolvableTrade<ResolvedIborFutureTrade>, ImmutableBean, Serializable {
 
   /**
    * The additional trade information, defaulted to an empty instance.
@@ -51,13 +48,12 @@ public final class IborFutureTrade
   @PropertyDefinition(overrideGet = true)
   private final TradeInfo tradeInfo;
   /**
-   * The link to the future that was traded.
+   * The futures product that was traded.
    * <p>
-   * This property returns a link to the security via a {@link StandardId}.
-   * See {@link #getSecurity()} and {@link SecurityLink} for more details.
+   * The product captures the financial details of the contract.
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
-  private final SecurityLink<IborFuture> securityLink;
+  private final IborFuture product;
   /**
    * The quantity, indicating the number of contracts in the trade.
    * <p>
@@ -83,16 +79,10 @@ public final class IborFutureTrade
 
   //-------------------------------------------------------------------------
   @Override
-  public IborFutureTrade resolveLinks(LinkResolver resolver) {
-    return resolver.resolveLinksIn(this, securityLink, resolved -> toBuilder().securityLink(resolved).build());
-  }
-
-  @Override
   public ResolvedIborFutureTrade resolve(ReferenceData refData) {
     return ResolvedIborFutureTrade.builder()
         .tradeInfo(tradeInfo)
-        .product(getProduct().resolve(refData))
-        .securityStandardId(getSecurity().getStandardId())
+        .product(product.resolve(refData))
         .quantity(quantity)
         .initialPrice(initialPrice)
         .build();
@@ -127,12 +117,12 @@ public final class IborFutureTrade
 
   private IborFutureTrade(
       TradeInfo tradeInfo,
-      SecurityLink<IborFuture> securityLink,
+      IborFuture product,
       long quantity,
       double initialPrice) {
-    JodaBeanUtils.notNull(securityLink, "securityLink");
+    JodaBeanUtils.notNull(product, "product");
     this.tradeInfo = tradeInfo;
-    this.securityLink = securityLink;
+    this.product = product;
     this.quantity = quantity;
     this.initialPrice = initialPrice;
   }
@@ -166,15 +156,14 @@ public final class IborFutureTrade
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the link to the future that was traded.
+   * Gets the futures product that was traded.
    * <p>
-   * This property returns a link to the security via a {@link StandardId}.
-   * See {@link #getSecurity()} and {@link SecurityLink} for more details.
+   * The product captures the financial details of the contract.
    * @return the value of the property, not null
    */
   @Override
-  public SecurityLink<IborFuture> getSecurityLink() {
-    return securityLink;
+  public IborFuture getProduct() {
+    return product;
   }
 
   //-----------------------------------------------------------------------
@@ -218,7 +207,7 @@ public final class IborFutureTrade
     if (obj != null && obj.getClass() == this.getClass()) {
       IborFutureTrade other = (IborFutureTrade) obj;
       return JodaBeanUtils.equal(tradeInfo, other.tradeInfo) &&
-          JodaBeanUtils.equal(securityLink, other.securityLink) &&
+          JodaBeanUtils.equal(product, other.product) &&
           (quantity == other.quantity) &&
           JodaBeanUtils.equal(initialPrice, other.initialPrice);
     }
@@ -229,7 +218,7 @@ public final class IborFutureTrade
   public int hashCode() {
     int hash = getClass().hashCode();
     hash = hash * 31 + JodaBeanUtils.hashCode(tradeInfo);
-    hash = hash * 31 + JodaBeanUtils.hashCode(securityLink);
+    hash = hash * 31 + JodaBeanUtils.hashCode(product);
     hash = hash * 31 + JodaBeanUtils.hashCode(quantity);
     hash = hash * 31 + JodaBeanUtils.hashCode(initialPrice);
     return hash;
@@ -240,7 +229,7 @@ public final class IborFutureTrade
     StringBuilder buf = new StringBuilder(160);
     buf.append("IborFutureTrade{");
     buf.append("tradeInfo").append('=').append(tradeInfo).append(',').append(' ');
-    buf.append("securityLink").append('=').append(securityLink).append(',').append(' ');
+    buf.append("product").append('=').append(product).append(',').append(' ');
     buf.append("quantity").append('=').append(quantity).append(',').append(' ');
     buf.append("initialPrice").append('=').append(JodaBeanUtils.toString(initialPrice));
     buf.append('}');
@@ -263,11 +252,10 @@ public final class IborFutureTrade
     private final MetaProperty<TradeInfo> tradeInfo = DirectMetaProperty.ofImmutable(
         this, "tradeInfo", IborFutureTrade.class, TradeInfo.class);
     /**
-     * The meta-property for the {@code securityLink} property.
+     * The meta-property for the {@code product} property.
      */
-    @SuppressWarnings({"unchecked", "rawtypes" })
-    private final MetaProperty<SecurityLink<IborFuture>> securityLink = DirectMetaProperty.ofImmutable(
-        this, "securityLink", IborFutureTrade.class, (Class) SecurityLink.class);
+    private final MetaProperty<IborFuture> product = DirectMetaProperty.ofImmutable(
+        this, "product", IborFutureTrade.class, IborFuture.class);
     /**
      * The meta-property for the {@code quantity} property.
      */
@@ -284,7 +272,7 @@ public final class IborFutureTrade
     private final Map<String, MetaProperty<?>> metaPropertyMap$ = new DirectMetaPropertyMap(
         this, null,
         "tradeInfo",
-        "securityLink",
+        "product",
         "quantity",
         "initialPrice");
 
@@ -299,8 +287,8 @@ public final class IborFutureTrade
       switch (propertyName.hashCode()) {
         case 752580658:  // tradeInfo
           return tradeInfo;
-        case 807992154:  // securityLink
-          return securityLink;
+        case -309474065:  // product
+          return product;
         case -1285004149:  // quantity
           return quantity;
         case -423406491:  // initialPrice
@@ -334,11 +322,11 @@ public final class IborFutureTrade
     }
 
     /**
-     * The meta-property for the {@code securityLink} property.
+     * The meta-property for the {@code product} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<SecurityLink<IborFuture>> securityLink() {
-      return securityLink;
+    public MetaProperty<IborFuture> product() {
+      return product;
     }
 
     /**
@@ -363,8 +351,8 @@ public final class IborFutureTrade
       switch (propertyName.hashCode()) {
         case 752580658:  // tradeInfo
           return ((IborFutureTrade) bean).getTradeInfo();
-        case 807992154:  // securityLink
-          return ((IborFutureTrade) bean).getSecurityLink();
+        case -309474065:  // product
+          return ((IborFutureTrade) bean).getProduct();
         case -1285004149:  // quantity
           return ((IborFutureTrade) bean).getQuantity();
         case -423406491:  // initialPrice
@@ -391,7 +379,7 @@ public final class IborFutureTrade
   public static final class Builder extends DirectFieldsBeanBuilder<IborFutureTrade> {
 
     private TradeInfo tradeInfo;
-    private SecurityLink<IborFuture> securityLink;
+    private IborFuture product;
     private long quantity;
     private double initialPrice;
 
@@ -408,7 +396,7 @@ public final class IborFutureTrade
      */
     private Builder(IborFutureTrade beanToCopy) {
       this.tradeInfo = beanToCopy.getTradeInfo();
-      this.securityLink = beanToCopy.getSecurityLink();
+      this.product = beanToCopy.getProduct();
       this.quantity = beanToCopy.getQuantity();
       this.initialPrice = beanToCopy.getInitialPrice();
     }
@@ -419,8 +407,8 @@ public final class IborFutureTrade
       switch (propertyName.hashCode()) {
         case 752580658:  // tradeInfo
           return tradeInfo;
-        case 807992154:  // securityLink
-          return securityLink;
+        case -309474065:  // product
+          return product;
         case -1285004149:  // quantity
           return quantity;
         case -423406491:  // initialPrice
@@ -430,15 +418,14 @@ public final class IborFutureTrade
       }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Builder set(String propertyName, Object newValue) {
       switch (propertyName.hashCode()) {
         case 752580658:  // tradeInfo
           this.tradeInfo = (TradeInfo) newValue;
           break;
-        case 807992154:  // securityLink
-          this.securityLink = (SecurityLink<IborFuture>) newValue;
+        case -309474065:  // product
+          this.product = (IborFuture) newValue;
           break;
         case -1285004149:  // quantity
           this.quantity = (Long) newValue;
@@ -480,7 +467,7 @@ public final class IborFutureTrade
     public IborFutureTrade build() {
       return new IborFutureTrade(
           tradeInfo,
-          securityLink,
+          product,
           quantity,
           initialPrice);
     }
@@ -499,16 +486,15 @@ public final class IborFutureTrade
     }
 
     /**
-     * Sets the link to the future that was traded.
+     * Sets the futures product that was traded.
      * <p>
-     * This property returns a link to the security via a {@link StandardId}.
-     * See {@link #getSecurity()} and {@link SecurityLink} for more details.
-     * @param securityLink  the new value, not null
+     * The product captures the financial details of the contract.
+     * @param product  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder securityLink(SecurityLink<IborFuture> securityLink) {
-      JodaBeanUtils.notNull(securityLink, "securityLink");
-      this.securityLink = securityLink;
+    public Builder product(IborFuture product) {
+      JodaBeanUtils.notNull(product, "product");
+      this.product = product;
       return this;
     }
 
@@ -544,7 +530,7 @@ public final class IborFutureTrade
       StringBuilder buf = new StringBuilder(160);
       buf.append("IborFutureTrade.Builder{");
       buf.append("tradeInfo").append('=').append(JodaBeanUtils.toString(tradeInfo)).append(',').append(' ');
-      buf.append("securityLink").append('=').append(JodaBeanUtils.toString(securityLink)).append(',').append(' ');
+      buf.append("product").append('=').append(JodaBeanUtils.toString(product)).append(',').append(' ');
       buf.append("quantity").append('=').append(JodaBeanUtils.toString(quantity)).append(',').append(' ');
       buf.append("initialPrice").append('=').append(JodaBeanUtils.toString(initialPrice));
       buf.append('}');

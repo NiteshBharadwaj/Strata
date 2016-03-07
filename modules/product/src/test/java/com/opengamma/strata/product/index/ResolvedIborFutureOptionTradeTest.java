@@ -25,6 +25,7 @@ import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.collect.id.StandardId;
 import com.opengamma.strata.product.TradeInfo;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
+import com.opengamma.strata.product.etd.SecurityId;
 import com.opengamma.strata.product.rate.IborRateObservation;
 
 /**
@@ -41,6 +42,7 @@ public class ResolvedIborFutureOptionTradeTest {
   private static final StandardId OPTION_ID2 = StandardId.of("OG-Ticker", "Option2");
 
   private static final ResolvedIborFuture FUTURE = ResolvedIborFuture.builder()
+      .securityId(SecurityId.of("OG-Test", "1"))
       .currency(Currency.USD)
       .notional(1_000_000d)
       .iborRate(IborRateObservation.of(USD_LIBOR_3M, date(2015, 3, 16), REF_DATA))

@@ -36,6 +36,7 @@ import com.opengamma.strata.product.Security;
 import com.opengamma.strata.product.SecurityLink;
 import com.opengamma.strata.product.UnitSecurity;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
+import com.opengamma.strata.product.etd.SecurityId;
 
 /**
  * Test {@link IborFutureOption}. 
@@ -50,6 +51,7 @@ public class IborFutureOptionTest {
   private static final Rounding ROUNDING = Rounding.ofDecimalPlaces(6);
   private static final StandardId ID_1 = StandardId.of("OG-Ticker", "Ibor1");
   private static final IborFuture IBOR_FUTURE_1 = IborFuture.builder()
+      .securityId(SecurityId.of(ID_1))
       .currency(GBP)
       .index(GBP_LIBOR_2M)
       .notional(NOTIONAL_1)

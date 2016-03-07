@@ -30,7 +30,8 @@ import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.basics.value.Rounding;
 import com.opengamma.strata.collect.ArgChecker;
-import com.opengamma.strata.product.ResolvedProduct;
+import com.opengamma.strata.product.ResolvedSecurityProduct;
+import com.opengamma.strata.product.etd.SecurityId;
 import com.opengamma.strata.product.rate.IborRateObservation;
 
 /**
@@ -46,12 +47,19 @@ import com.opengamma.strata.product.rate.IborRateObservation;
  */
 @BeanDefinition
 public final class ResolvedIborFuture
-    implements ResolvedProduct, ImmutableBean, Serializable {
+    implements ResolvedSecurityProduct, ImmutableBean, Serializable {
 
+  /**
+   * The security identifier.
+   * <p>
+   * This identifier uniquely identifies the security within the system.
+   */
+  @PropertyDefinition(validate = "notNull", overrideGet = true)
+  private final SecurityId securityId;
   /**
    * The currency that the future is quoted in.
    */
-  @PropertyDefinition(validate = "notNull")
+  @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final Currency currency;
   /**
    * The notional amount.
@@ -160,16 +168,19 @@ public final class ResolvedIborFuture
   }
 
   private ResolvedIborFuture(
+      SecurityId securityId,
       Currency currency,
       double notional,
       double accrualFactor,
       IborRateObservation iborRate,
       Rounding rounding) {
+    JodaBeanUtils.notNull(securityId, "securityId");
     JodaBeanUtils.notNull(currency, "currency");
     ArgChecker.notNegative(notional, "notional");
     ArgChecker.notNegativeOrZero(accrualFactor, "accrualFactor");
     JodaBeanUtils.notNull(iborRate, "iborRate");
     JodaBeanUtils.notNull(rounding, "rounding");
+    this.securityId = securityId;
     this.currency = currency;
     this.notional = notional;
     this.accrualFactor = accrualFactor;
@@ -194,9 +205,22 @@ public final class ResolvedIborFuture
 
   //-----------------------------------------------------------------------
   /**
+   * Gets the security identifier.
+   * <p>
+   * This identifier uniquely identifies the security within the system.
+   * @return the value of the property, not null
+   */
+  @Override
+  public SecurityId getSecurityId() {
+    return securityId;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
    * Gets the currency that the future is quoted in.
    * @return the value of the property, not null
    */
+  @Override
   public Currency getCurrency() {
     return currency;
   }
@@ -270,7 +294,8 @@ public final class ResolvedIborFuture
     }
     if (obj != null && obj.getClass() == this.getClass()) {
       ResolvedIborFuture other = (ResolvedIborFuture) obj;
-      return JodaBeanUtils.equal(currency, other.currency) &&
+      return JodaBeanUtils.equal(securityId, other.securityId) &&
+          JodaBeanUtils.equal(currency, other.currency) &&
           JodaBeanUtils.equal(notional, other.notional) &&
           JodaBeanUtils.equal(accrualFactor, other.accrualFactor) &&
           JodaBeanUtils.equal(iborRate, other.iborRate) &&
@@ -282,6 +307,7 @@ public final class ResolvedIborFuture
   @Override
   public int hashCode() {
     int hash = getClass().hashCode();
+    hash = hash * 31 + JodaBeanUtils.hashCode(securityId);
     hash = hash * 31 + JodaBeanUtils.hashCode(currency);
     hash = hash * 31 + JodaBeanUtils.hashCode(notional);
     hash = hash * 31 + JodaBeanUtils.hashCode(accrualFactor);
@@ -292,8 +318,9 @@ public final class ResolvedIborFuture
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(192);
+    StringBuilder buf = new StringBuilder(224);
     buf.append("ResolvedIborFuture{");
+    buf.append("securityId").append('=').append(securityId).append(',').append(' ');
     buf.append("currency").append('=').append(currency).append(',').append(' ');
     buf.append("notional").append('=').append(notional).append(',').append(' ');
     buf.append("accrualFactor").append('=').append(accrualFactor).append(',').append(' ');
@@ -313,6 +340,11 @@ public final class ResolvedIborFuture
      */
     static final Meta INSTANCE = new Meta();
 
+    /**
+     * The meta-property for the {@code securityId} property.
+     */
+    private final MetaProperty<SecurityId> securityId = DirectMetaProperty.ofImmutable(
+        this, "securityId", ResolvedIborFuture.class, SecurityId.class);
     /**
      * The meta-property for the {@code currency} property.
      */
@@ -343,6 +375,7 @@ public final class ResolvedIborFuture
      */
     private final Map<String, MetaProperty<?>> metaPropertyMap$ = new DirectMetaPropertyMap(
         this, null,
+        "securityId",
         "currency",
         "notional",
         "accrualFactor",
@@ -358,6 +391,8 @@ public final class ResolvedIborFuture
     @Override
     protected MetaProperty<?> metaPropertyGet(String propertyName) {
       switch (propertyName.hashCode()) {
+        case 1574023291:  // securityId
+          return securityId;
         case 575402001:  // currency
           return currency;
         case 1585636160:  // notional
@@ -388,6 +423,14 @@ public final class ResolvedIborFuture
     }
 
     //-----------------------------------------------------------------------
+    /**
+     * The meta-property for the {@code securityId} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<SecurityId> securityId() {
+      return securityId;
+    }
+
     /**
      * The meta-property for the {@code currency} property.
      * @return the meta-property, not null
@@ -432,6 +475,8 @@ public final class ResolvedIborFuture
     @Override
     protected Object propertyGet(Bean bean, String propertyName, boolean quiet) {
       switch (propertyName.hashCode()) {
+        case 1574023291:  // securityId
+          return ((ResolvedIborFuture) bean).getSecurityId();
         case 575402001:  // currency
           return ((ResolvedIborFuture) bean).getCurrency();
         case 1585636160:  // notional
@@ -463,6 +508,7 @@ public final class ResolvedIborFuture
    */
   public static final class Builder extends DirectFieldsBeanBuilder<ResolvedIborFuture> {
 
+    private SecurityId securityId;
     private Currency currency;
     private double notional;
     private double accrualFactor;
@@ -481,6 +527,7 @@ public final class ResolvedIborFuture
      * @param beanToCopy  the bean to copy from, not null
      */
     private Builder(ResolvedIborFuture beanToCopy) {
+      this.securityId = beanToCopy.getSecurityId();
       this.currency = beanToCopy.getCurrency();
       this.notional = beanToCopy.getNotional();
       this.accrualFactor = beanToCopy.getAccrualFactor();
@@ -492,6 +539,8 @@ public final class ResolvedIborFuture
     @Override
     public Object get(String propertyName) {
       switch (propertyName.hashCode()) {
+        case 1574023291:  // securityId
+          return securityId;
         case 575402001:  // currency
           return currency;
         case 1585636160:  // notional
@@ -510,6 +559,9 @@ public final class ResolvedIborFuture
     @Override
     public Builder set(String propertyName, Object newValue) {
       switch (propertyName.hashCode()) {
+        case 1574023291:  // securityId
+          this.securityId = (SecurityId) newValue;
+          break;
         case 575402001:  // currency
           this.currency = (Currency) newValue;
           break;
@@ -559,6 +611,7 @@ public final class ResolvedIborFuture
     public ResolvedIborFuture build() {
       preBuild(this);
       return new ResolvedIborFuture(
+          securityId,
           currency,
           notional,
           accrualFactor,
@@ -567,6 +620,19 @@ public final class ResolvedIborFuture
     }
 
     //-----------------------------------------------------------------------
+    /**
+     * Sets the security identifier.
+     * <p>
+     * This identifier uniquely identifies the security within the system.
+     * @param securityId  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder securityId(SecurityId securityId) {
+      JodaBeanUtils.notNull(securityId, "securityId");
+      this.securityId = securityId;
+      return this;
+    }
+
     /**
      * Sets the currency that the future is quoted in.
      * @param currency  the new value, not null
@@ -642,8 +708,9 @@ public final class ResolvedIborFuture
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(192);
+      StringBuilder buf = new StringBuilder(224);
       buf.append("ResolvedIborFuture.Builder{");
+      buf.append("securityId").append('=').append(JodaBeanUtils.toString(securityId)).append(',').append(' ');
       buf.append("currency").append('=').append(JodaBeanUtils.toString(currency)).append(',').append(' ');
       buf.append("notional").append('=').append(JodaBeanUtils.toString(notional)).append(',').append(' ');
       buf.append("accrualFactor").append('=').append(JodaBeanUtils.toString(accrualFactor)).append(',').append(' ');

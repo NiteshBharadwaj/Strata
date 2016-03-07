@@ -34,6 +34,7 @@ import com.opengamma.strata.product.SecurityLink;
 import com.opengamma.strata.product.TradeInfo;
 import com.opengamma.strata.product.UnitSecurity;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
+import com.opengamma.strata.product.etd.SecurityId;
 
 /**
  * Test {@link IborFutureOptionTrade}.
@@ -50,6 +51,7 @@ public class IborFutureOptionTradeTest {
   private static final StandardId OPTION_ID = StandardId.of("OG-Ticker", "Option1");
 
   private static final IborFuture FUTURE = IborFuture.builder()
+      .securityId(SecurityId.of(FUTURE_ID))
       .currency(Currency.USD)
       .notional(1_000_000d)
       .lastTradeDate(date(2015, 3, 16))

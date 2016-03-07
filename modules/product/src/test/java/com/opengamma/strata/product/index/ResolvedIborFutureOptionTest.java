@@ -26,6 +26,7 @@ import org.testng.annotations.Test;
 import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.basics.value.Rounding;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
+import com.opengamma.strata.product.etd.SecurityId;
 import com.opengamma.strata.product.rate.IborRateObservation;
 
 /**
@@ -40,6 +41,7 @@ public class ResolvedIborFutureOptionTest {
   private static final LocalDate LAST_TRADE_DATE_2 = date(2015, 9, 16);
   private static final Rounding ROUNDING = Rounding.ofDecimalPlaces(6);
   private static final ResolvedIborFuture IBOR_FUTURE_1 = ResolvedIborFuture.builder()
+      .securityId(SecurityId.of("OG-Test", "1"))
       .currency(GBP)
       .notional(NOTIONAL_1)
       .iborRate(IborRateObservation.of(GBP_LIBOR_2M, LAST_TRADE_DATE_1, REF_DATA))

@@ -24,6 +24,7 @@ import org.testng.annotations.Test;
 
 import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.basics.value.Rounding;
+import com.opengamma.strata.product.etd.SecurityId;
 import com.opengamma.strata.product.rate.IborRateObservation;
 
 /**
@@ -33,6 +34,8 @@ import com.opengamma.strata.product.rate.IborRateObservation;
 public class IborFutureTest {
 
   private static final ReferenceData REF_DATA = ReferenceData.standard();
+  private static final SecurityId SECURITY_ID = SecurityId.of("OG-Test", "1");
+  private static final SecurityId SECURITY_ID2 = SecurityId.of("OG-Test", "2");
   private static final double NOTIONAL_1 = 1_000d;
   private static final double NOTIONAL_2 = 2_000d;
   private static final double ACCRUAL_FACTOR_2M = TENOR_2M.getPeriod().toTotalMonths() / 12.0;
@@ -44,6 +47,7 @@ public class IborFutureTest {
   //-------------------------------------------------------------------------
   public void test_builder() {
     IborFuture test = IborFuture.builder()
+        .securityId(SECURITY_ID)
         .currency(GBP)
         .notional(NOTIONAL_1)
         .accrualFactor(ACCRUAL_FACTOR_2M)
@@ -51,6 +55,7 @@ public class IborFutureTest {
         .index(GBP_LIBOR_2M)
         .rounding(ROUNDING)
         .build();
+    assertEquals(test.getSecurityId(), SECURITY_ID);
     assertEquals(test.getCurrency(), GBP);
     assertEquals(test.getNotional(), NOTIONAL_1);
     assertEquals(test.getAccrualFactor(), ACCRUAL_FACTOR_2M);
@@ -62,10 +67,12 @@ public class IborFutureTest {
 
   public void test_builder_defaults() {
     IborFuture test = IborFuture.builder()
+        .securityId(SECURITY_ID)
         .currency(GBP)
         .lastTradeDate(LAST_TRADE_DATE_1)
         .index(GBP_LIBOR_2M)
         .build();
+    assertEquals(test.getSecurityId(), SECURITY_ID);
     assertEquals(test.getCurrency(), GBP);
     assertEquals(test.getNotional(), 0.0);
     assertEquals(test.getAccrualFactor(), ACCRUAL_FACTOR_2M);
@@ -77,6 +84,7 @@ public class IborFutureTest {
 
   public void test_builder_noIndex() {
     assertThrowsIllegalArg(() -> IborFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL_1)
         .currency(GBP)
         .lastTradeDate(LAST_TRADE_DATE_1)
@@ -86,6 +94,7 @@ public class IborFutureTest {
 
   public void test_builder_noCurrency() {
     IborFuture test = IborFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL_1)
         .index(GBP_LIBOR_2M)
         .lastTradeDate(LAST_TRADE_DATE_1)
@@ -96,6 +105,7 @@ public class IborFutureTest {
 
   public void test_builder_noLastTradeDate() {
     assertThrowsIllegalArg(() -> IborFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL_1)
         .currency(GBP)
         .index(GBP_LIBOR_2M)
@@ -106,12 +116,14 @@ public class IborFutureTest {
   //-------------------------------------------------------------------------
   public void test_resolve() {
     IborFuture test = IborFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL_1)
         .index(GBP_LIBOR_2M)
         .lastTradeDate(LAST_TRADE_DATE_1)
         .rounding(ROUNDING)
         .build();
     ResolvedIborFuture expected = ResolvedIborFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL_1)
         .iborRate(IborRateObservation.of(GBP_LIBOR_2M, LAST_TRADE_DATE_1, REF_DATA))
         .rounding(ROUNDING)
@@ -132,6 +144,7 @@ public class IborFutureTest {
   //-------------------------------------------------------------------------
   static IborFuture sut() {
     return IborFuture.builder()
+        .securityId(SECURITY_ID)
         .currency(USD)
         .notional(NOTIONAL_1)
         .accrualFactor(ACCRUAL_FACTOR_3M)
@@ -143,6 +156,7 @@ public class IborFutureTest {
 
   static IborFuture sut2() {
     return IborFuture.builder()
+        .securityId(SECURITY_ID2)
         .currency(GBP)
         .notional(NOTIONAL_2)
         .accrualFactor(ACCRUAL_FACTOR_2M)
