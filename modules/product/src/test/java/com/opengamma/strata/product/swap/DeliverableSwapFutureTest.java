@@ -35,6 +35,7 @@ import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.basics.schedule.PeriodicSchedule;
 import com.opengamma.strata.basics.schedule.StubConvention;
 import com.opengamma.strata.basics.value.ValueSchedule;
+import com.opengamma.strata.product.SecurityId;
 import com.opengamma.strata.product.swap.type.FixedIborSwapConventions;
 
 /**
@@ -53,15 +54,12 @@ public class DeliverableSwapFutureTest {
   private static final LocalDate LAST_TRADE_DATE = LocalDate.of(2014, 9, 5);
   private static final LocalDate DELIVERY_DATE = LocalDate.of(2014, 9, 9);
   private static final double NOTIONAL = 100000;
+  private static final SecurityId SECURITY_ID = SecurityId.of("OG-Test", "DSF");
+  private static final SecurityId SECURITY_ID2 = SecurityId.of("OG-Test", "DSF2");
 
   //-------------------------------------------------------------------------
   public void test_builder() {
-    DeliverableSwapFuture test = DeliverableSwapFuture.builder()
-        .notional(NOTIONAL)
-        .deliveryDate(DELIVERY_DATE)
-        .lastTradeDate(LAST_TRADE_DATE)
-        .underlyingSwap(SWAP)
-        .build();
+    DeliverableSwapFuture test = sut();
     assertEquals(test.getDeliveryDate(), DELIVERY_DATE);
     assertEquals(test.getLastTradeDate(), LAST_TRADE_DATE);
     assertEquals(test.getNotional(), NOTIONAL);
@@ -107,6 +105,22 @@ public class DeliverableSwapFutureTest {
             .rate(ValueSchedule.of(0.015))
             .build())
         .build();
+    SwapLeg knownAmountLeg = KnownAmountSwapLeg.builder()
+        .payReceive(RECEIVE)
+        .accrualSchedule(PeriodicSchedule.builder()
+            .startDate(LocalDate.of(2014, 9, 12))
+            .endDate(LocalDate.of(2016, 9, 12))
+            .frequency(P6M)
+            .businessDayAdjustment(BDA_MF)
+            .stubConvention(StubConvention.SHORT_INITIAL)
+            .build())
+        .paymentSchedule(PaymentSchedule.builder()
+            .paymentFrequency(P6M)
+            .paymentDateOffset(DaysAdjustment.NONE)
+            .build())
+        .amount(ValueSchedule.of(0.015))
+        .currency(USD)
+        .build();
     SwapLeg iborLeg500 = RateCalculationSwapLeg.builder()
         .payReceive(PAY)
         .accrualSchedule(PeriodicSchedule.builder()
@@ -133,29 +147,53 @@ public class DeliverableSwapFutureTest {
         .build();
     Swap swap1 = Swap.of(fixedLeg10, SWAP.getLeg(PAY).get());
     Swap swap2 = Swap.of(SWAP.getLeg(RECEIVE).get(), iborLeg500);
+    Swap swap3 = Swap.of(knownAmountLeg, SWAP.getLeg(PAY).get());
     assertThrowsIllegalArg(() -> DeliverableSwapFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL)
         .deliveryDate(DELIVERY_DATE)
         .lastTradeDate(LAST_TRADE_DATE)
         .underlyingSwap(swap1)
         .build());
     assertThrowsIllegalArg(() -> DeliverableSwapFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL)
         .deliveryDate(DELIVERY_DATE)
         .lastTradeDate(LAST_TRADE_DATE)
         .underlyingSwap(swap2)
         .build());
+    // should succeed normally (no notional to validate on known amount leg)
+    DeliverableSwapFuture.builder()
+        .securityId(SECURITY_ID)
+        .notional(NOTIONAL)
+        .deliveryDate(DELIVERY_DATE)
+        .lastTradeDate(LAST_TRADE_DATE)
+        .underlyingSwap(swap3)
+        .build();
   }
 
   //-------------------------------------------------------------------------
   public void coverage() {
-    DeliverableSwapFuture test1 = DeliverableSwapFuture.builder()
+    coverImmutableBean(sut());
+    coverBeanEquals(sut(), sut2());
+  }
+
+  public void test_serialization() {
+    assertSerialization(sut());
+  }
+
+  //-------------------------------------------------------------------------
+  static DeliverableSwapFuture sut() {
+    return DeliverableSwapFuture.builder()
+        .securityId(SECURITY_ID)
         .notional(NOTIONAL)
         .deliveryDate(DELIVERY_DATE)
         .lastTradeDate(LAST_TRADE_DATE)
         .underlyingSwap(SWAP)
         .build();
-    coverImmutableBean(test1);
+  }
+
+  static DeliverableSwapFuture sut2() {
     SwapLeg iborLeg = RateCalculationSwapLeg.builder()
         .payReceive(PAY)
         .accrualSchedule(PeriodicSchedule.builder()
@@ -180,24 +218,14 @@ public class DeliverableSwapFutureTest {
             .fixingDateOffset(DaysAdjustment.ofBusinessDays(-2, SAT_SUN, BDA_P))
             .build())
         .build();
-    Swap swap1 = Swap.of(SWAP.getLeg(RECEIVE).get(), iborLeg);
-    DeliverableSwapFuture test2 = DeliverableSwapFuture.builder()
+    Swap swap2 = Swap.of(SWAP.getLeg(RECEIVE).get(), iborLeg);
+    return DeliverableSwapFuture.builder()
+        .securityId(SECURITY_ID2)
         .notional(20000L)
         .deliveryDate(LocalDate.of(2014, 9, 5))
         .lastTradeDate(LocalDate.of(2014, 9, 2))
-        .underlyingSwap(swap1)
+        .underlyingSwap(swap2)
         .build();
-    coverBeanEquals(test1, test2);
-  }
-
-  public void test_serialization() {
-    DeliverableSwapFuture test = DeliverableSwapFuture.builder()
-        .notional(NOTIONAL)
-        .deliveryDate(DELIVERY_DATE)
-        .lastTradeDate(LAST_TRADE_DATE)
-        .underlyingSwap(SWAP)
-        .build();
-    assertSerialization(test);
   }
 
 }
