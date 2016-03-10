@@ -24,6 +24,7 @@ import org.joda.beans.impl.direct.DirectMetaProperty;
 import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
 import com.opengamma.strata.basics.market.ReferenceData;
+import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.product.ResolvedTrade;
 import com.opengamma.strata.product.TradeInfo;
 
@@ -69,7 +70,7 @@ public final class ResolvedDeliverableSwapFutureTrade
    * <p>
    * This is the price agreed when the trade occurred.
    */
-  @PropertyDefinition
+  @PropertyDefinition(validate = "ArgChecker.notNegative")
   private final double price;
 
   //-------------------------------------------------------------------------
@@ -118,6 +119,7 @@ public final class ResolvedDeliverableSwapFutureTrade
       long quantity,
       double price) {
     JodaBeanUtils.notNull(product, "product");
+    ArgChecker.notNegative(price, "price");
     this.tradeInfo = tradeInfo;
     this.product = product;
     this.quantity = quantity;
@@ -515,6 +517,7 @@ public final class ResolvedDeliverableSwapFutureTrade
      * @return this, for chaining, not null
      */
     public Builder price(double price) {
+      ArgChecker.notNegative(price, "price");
       this.price = price;
       return this;
     }

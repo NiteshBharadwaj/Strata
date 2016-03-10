@@ -7,16 +7,17 @@ package com.opengamma.strata.product.index;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 
 import org.joda.beans.Bean;
 import org.joda.beans.BeanDefinition;
 import org.joda.beans.ImmutableBean;
 import org.joda.beans.ImmutableDefaults;
-import org.joda.beans.ImmutableValidator;
 import org.joda.beans.JodaBeanUtils;
 import org.joda.beans.MetaProperty;
 import org.joda.beans.Property;
@@ -26,36 +27,50 @@ import org.joda.beans.impl.direct.DirectMetaBean;
 import org.joda.beans.impl.direct.DirectMetaProperty;
 import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.opengamma.strata.basics.PutCall;
+import com.opengamma.strata.basics.currency.Currency;
 import com.opengamma.strata.basics.market.ReferenceData;
 import com.opengamma.strata.basics.value.Rounding;
-import com.opengamma.strata.collect.ArgChecker;
-import com.opengamma.strata.product.ResolvedProduct;
+import com.opengamma.strata.product.ReferenceSecurity;
 import com.opengamma.strata.product.SecurityId;
+import com.opengamma.strata.product.SecurityInfoType;
+import com.opengamma.strata.product.TradeInfo;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
 
 /**
- * A futures option contract based on an Ibor index, resolved for pricing.
+ * A security representing a futures option contract, based on an Ibor index.
  * <p>
- * This is the resolved form of {@link IborFutureOption} and is an input to the pricers.
- * Applications will typically create a {@code ResolvedIborFutureOption} from a {@code IborFutureOption}
- * using {@link IborFutureOption#resolve(ReferenceData)}.
+ * An Ibor future option is a financial instrument that provides an option based on the future value of
+ * an Ibor index interest rate. The option is American, exercised at any point up to the exercise time.
+ * It handles options with either daily margining or upfront premium.
  * <p>
- * A {@code ResolvedIborFutureOption} is bound to data that changes over time, such as holiday calendars.
- * If the data changes, such as the addition of a new holiday, the resolved form will not be updated.
- * Care must be taken when placing the resolved form in a cache or persistence layer.
+ * An Ibor future option is also known as a <i>STIR future option</i> (Short Term Interest Rate).
  */
-@BeanDefinition(constructorScope = "package")
-public final class ResolvedIborFutureOption
-    implements ResolvedProduct, ImmutableBean, Serializable {
+@BeanDefinition
+public final class IborFutureOptionSecurity
+    implements ReferenceSecurity, ImmutableBean, Serializable {
 
   /**
    * The security identifier.
    * <p>
    * This identifier uniquely identifies the security within the system.
    */
-  @PropertyDefinition(validate = "notNull")
+  @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final SecurityId securityId;
+  /**
+   * The additional security information.
+   * <p>
+   * This stores additional information for the security.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final ImmutableMap<SecurityInfoType<?>, Object> info;
+  /**
+   * The currency that the option is traded in.
+   */
+  @PropertyDefinition(validate = "notNull", overrideGet = true)
+  private final Currency currency;
   /**
    * Whether the option is put or call.
    * <p>
@@ -75,12 +90,27 @@ public final class ResolvedIborFutureOption
   @PropertyDefinition
   private final double strikePrice;
   /**
-   * The expiry of the option.
+   * The expiry date of the option.  
    * <p>
-   * The date must not be after last trade date of the underlying future.
+   * The expiry date is related to the expiry time and time-zone.
+   * The date must not be after last trade date of the underlying future. 
    */
   @PropertyDefinition(validate = "notNull")
-  private final ZonedDateTime expiry;
+  private final LocalDate expiryDate;
+  /**
+   * The expiry time of the option.  
+   * <p>
+   * The expiry time is related to the expiry date and time-zone.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final LocalTime expiryTime;
+  /**
+   * The time-zone of the expiry time.  
+   * <p>
+   * The expiry time-zone is related to the expiry date and time.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final ZoneId expiryZone;
   /**
    * The style of the option premium.
    * <p>
@@ -99,10 +129,10 @@ public final class ResolvedIborFutureOption
   @PropertyDefinition(validate = "notNull")
   private final Rounding rounding;
   /**
-   * The underlying future.
+   * The identifier of the underlying future.
    */
   @PropertyDefinition(validate = "notNull")
-  private final ResolvedIborFuture underlyingFuture;
+  private final SecurityId underlyingFutureId;
 
   //-------------------------------------------------------------------------
   @ImmutableDefaults
@@ -110,34 +140,48 @@ public final class ResolvedIborFutureOption
     builder.rounding(Rounding.none());
   }
 
-  @ImmutableValidator
-  private void validate() {
-    LocalDate lastTradeDate = underlyingFuture.getLastTradeDate();
-    ArgChecker.inOrderOrEqual(expiry.toLocalDate(), lastTradeDate, "expiry.date", "underlying.lastTradeDate");
+  //-------------------------------------------------------------------------
+  @Override
+  public ImmutableSet<SecurityId> getUnderlyingIds() {
+    return ImmutableSet.of(underlyingFutureId);
   }
 
   //-------------------------------------------------------------------------
-  /**
-   * Gets the expiry date of the option.
-   * 
-   * @return the expiry date
-   */
-  public LocalDate getExpiryDate() {
-    return expiry.toLocalDate();
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> Optional<T> findInfo(SecurityInfoType<T> type) {
+    return Optional.ofNullable((T) info.get(type));
+  }
+
+  @Override
+  public IborFutureOption createProduct(ReferenceData refData) {
+    IborFuture underlying = refData.getValue(underlyingFutureId, IborFutureSecurity.class).createProduct(refData);
+    return new IborFutureOption(
+        securityId, putCall, strikePrice, expiryDate, expiryTime, expiryZone, premiumStyle, rounding, underlying);
+  }
+
+  @Override
+  public IborFutureOptionTrade createTrade(
+      TradeInfo tradeInfo,
+      long quantity,
+      double tradePrice,
+      ReferenceData refData) {
+
+    return new IborFutureOptionTrade(tradeInfo, createProduct(refData), quantity, tradePrice);
   }
 
   //------------------------- AUTOGENERATED START -------------------------
   ///CLOVER:OFF
   /**
-   * The meta-bean for {@code ResolvedIborFutureOption}.
+   * The meta-bean for {@code IborFutureOptionSecurity}.
    * @return the meta-bean, not null
    */
-  public static ResolvedIborFutureOption.Meta meta() {
-    return ResolvedIborFutureOption.Meta.INSTANCE;
+  public static IborFutureOptionSecurity.Meta meta() {
+    return IborFutureOptionSecurity.Meta.INSTANCE;
   }
 
   static {
-    JodaBeanUtils.registerMetaBean(ResolvedIborFutureOption.Meta.INSTANCE);
+    JodaBeanUtils.registerMetaBean(IborFutureOptionSecurity.Meta.INSTANCE);
   }
 
   /**
@@ -149,46 +193,47 @@ public final class ResolvedIborFutureOption
    * Returns a builder used to create an instance of the bean.
    * @return the builder, not null
    */
-  public static ResolvedIborFutureOption.Builder builder() {
-    return new ResolvedIborFutureOption.Builder();
+  public static IborFutureOptionSecurity.Builder builder() {
+    return new IborFutureOptionSecurity.Builder();
   }
 
-  /**
-   * Creates an instance.
-   * @param securityId  the value of the property, not null
-   * @param putCall  the value of the property
-   * @param strikePrice  the value of the property
-   * @param expiry  the value of the property, not null
-   * @param premiumStyle  the value of the property, not null
-   * @param rounding  the value of the property, not null
-   * @param underlyingFuture  the value of the property, not null
-   */
-  ResolvedIborFutureOption(
+  private IborFutureOptionSecurity(
       SecurityId securityId,
+      Map<SecurityInfoType<?>, Object> info,
+      Currency currency,
       PutCall putCall,
       double strikePrice,
-      ZonedDateTime expiry,
+      LocalDate expiryDate,
+      LocalTime expiryTime,
+      ZoneId expiryZone,
       FutureOptionPremiumStyle premiumStyle,
       Rounding rounding,
-      ResolvedIborFuture underlyingFuture) {
+      SecurityId underlyingFutureId) {
     JodaBeanUtils.notNull(securityId, "securityId");
-    JodaBeanUtils.notNull(expiry, "expiry");
+    JodaBeanUtils.notNull(info, "info");
+    JodaBeanUtils.notNull(currency, "currency");
+    JodaBeanUtils.notNull(expiryDate, "expiryDate");
+    JodaBeanUtils.notNull(expiryTime, "expiryTime");
+    JodaBeanUtils.notNull(expiryZone, "expiryZone");
     JodaBeanUtils.notNull(premiumStyle, "premiumStyle");
     JodaBeanUtils.notNull(rounding, "rounding");
-    JodaBeanUtils.notNull(underlyingFuture, "underlyingFuture");
+    JodaBeanUtils.notNull(underlyingFutureId, "underlyingFutureId");
     this.securityId = securityId;
+    this.info = ImmutableMap.copyOf(info);
+    this.currency = currency;
     this.putCall = putCall;
     this.strikePrice = strikePrice;
-    this.expiry = expiry;
+    this.expiryDate = expiryDate;
+    this.expiryTime = expiryTime;
+    this.expiryZone = expiryZone;
     this.premiumStyle = premiumStyle;
     this.rounding = rounding;
-    this.underlyingFuture = underlyingFuture;
-    validate();
+    this.underlyingFutureId = underlyingFutureId;
   }
 
   @Override
-  public ResolvedIborFutureOption.Meta metaBean() {
-    return ResolvedIborFutureOption.Meta.INSTANCE;
+  public IborFutureOptionSecurity.Meta metaBean() {
+    return IborFutureOptionSecurity.Meta.INSTANCE;
   }
 
   @Override
@@ -208,8 +253,30 @@ public final class ResolvedIborFutureOption
    * This identifier uniquely identifies the security within the system.
    * @return the value of the property, not null
    */
+  @Override
   public SecurityId getSecurityId() {
     return securityId;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the additional security information.
+   * <p>
+   * This stores additional information for the security.
+   * @return the value of the property, not null
+   */
+  public ImmutableMap<SecurityInfoType<?>, Object> getInfo() {
+    return info;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the currency that the option is traded in.
+   * @return the value of the property, not null
+   */
+  @Override
+  public Currency getCurrency() {
+    return currency;
   }
 
   //-----------------------------------------------------------------------
@@ -240,13 +307,36 @@ public final class ResolvedIborFutureOption
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the expiry of the option.
+   * Gets the expiry date of the option.
    * <p>
+   * The expiry date is related to the expiry time and time-zone.
    * The date must not be after last trade date of the underlying future.
    * @return the value of the property, not null
    */
-  public ZonedDateTime getExpiry() {
-    return expiry;
+  public LocalDate getExpiryDate() {
+    return expiryDate;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the expiry time of the option.
+   * <p>
+   * The expiry time is related to the expiry date and time-zone.
+   * @return the value of the property, not null
+   */
+  public LocalTime getExpiryTime() {
+    return expiryTime;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the time-zone of the expiry time.
+   * <p>
+   * The expiry time-zone is related to the expiry date and time.
+   * @return the value of the property, not null
+   */
+  public ZoneId getExpiryZone() {
+    return expiryZone;
   }
 
   //-----------------------------------------------------------------------
@@ -276,11 +366,11 @@ public final class ResolvedIborFutureOption
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the underlying future.
+   * Gets the identifier of the underlying future.
    * @return the value of the property, not null
    */
-  public ResolvedIborFuture getUnderlyingFuture() {
-    return underlyingFuture;
+  public SecurityId getUnderlyingFutureId() {
+    return underlyingFutureId;
   }
 
   //-----------------------------------------------------------------------
@@ -298,14 +388,18 @@ public final class ResolvedIborFutureOption
       return true;
     }
     if (obj != null && obj.getClass() == this.getClass()) {
-      ResolvedIborFutureOption other = (ResolvedIborFutureOption) obj;
+      IborFutureOptionSecurity other = (IborFutureOptionSecurity) obj;
       return JodaBeanUtils.equal(securityId, other.securityId) &&
+          JodaBeanUtils.equal(info, other.info) &&
+          JodaBeanUtils.equal(currency, other.currency) &&
           JodaBeanUtils.equal(putCall, other.putCall) &&
           JodaBeanUtils.equal(strikePrice, other.strikePrice) &&
-          JodaBeanUtils.equal(expiry, other.expiry) &&
+          JodaBeanUtils.equal(expiryDate, other.expiryDate) &&
+          JodaBeanUtils.equal(expiryTime, other.expiryTime) &&
+          JodaBeanUtils.equal(expiryZone, other.expiryZone) &&
           JodaBeanUtils.equal(premiumStyle, other.premiumStyle) &&
           JodaBeanUtils.equal(rounding, other.rounding) &&
-          JodaBeanUtils.equal(underlyingFuture, other.underlyingFuture);
+          JodaBeanUtils.equal(underlyingFutureId, other.underlyingFutureId);
     }
     return false;
   }
@@ -314,33 +408,41 @@ public final class ResolvedIborFutureOption
   public int hashCode() {
     int hash = getClass().hashCode();
     hash = hash * 31 + JodaBeanUtils.hashCode(securityId);
+    hash = hash * 31 + JodaBeanUtils.hashCode(info);
+    hash = hash * 31 + JodaBeanUtils.hashCode(currency);
     hash = hash * 31 + JodaBeanUtils.hashCode(putCall);
     hash = hash * 31 + JodaBeanUtils.hashCode(strikePrice);
-    hash = hash * 31 + JodaBeanUtils.hashCode(expiry);
+    hash = hash * 31 + JodaBeanUtils.hashCode(expiryDate);
+    hash = hash * 31 + JodaBeanUtils.hashCode(expiryTime);
+    hash = hash * 31 + JodaBeanUtils.hashCode(expiryZone);
     hash = hash * 31 + JodaBeanUtils.hashCode(premiumStyle);
     hash = hash * 31 + JodaBeanUtils.hashCode(rounding);
-    hash = hash * 31 + JodaBeanUtils.hashCode(underlyingFuture);
+    hash = hash * 31 + JodaBeanUtils.hashCode(underlyingFutureId);
     return hash;
   }
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(256);
-    buf.append("ResolvedIborFutureOption{");
+    StringBuilder buf = new StringBuilder(384);
+    buf.append("IborFutureOptionSecurity{");
     buf.append("securityId").append('=').append(securityId).append(',').append(' ');
+    buf.append("info").append('=').append(info).append(',').append(' ');
+    buf.append("currency").append('=').append(currency).append(',').append(' ');
     buf.append("putCall").append('=').append(putCall).append(',').append(' ');
     buf.append("strikePrice").append('=').append(strikePrice).append(',').append(' ');
-    buf.append("expiry").append('=').append(expiry).append(',').append(' ');
+    buf.append("expiryDate").append('=').append(expiryDate).append(',').append(' ');
+    buf.append("expiryTime").append('=').append(expiryTime).append(',').append(' ');
+    buf.append("expiryZone").append('=').append(expiryZone).append(',').append(' ');
     buf.append("premiumStyle").append('=').append(premiumStyle).append(',').append(' ');
     buf.append("rounding").append('=').append(rounding).append(',').append(' ');
-    buf.append("underlyingFuture").append('=').append(JodaBeanUtils.toString(underlyingFuture));
+    buf.append("underlyingFutureId").append('=').append(JodaBeanUtils.toString(underlyingFutureId));
     buf.append('}');
     return buf.toString();
   }
 
   //-----------------------------------------------------------------------
   /**
-   * The meta-bean for {@code ResolvedIborFutureOption}.
+   * The meta-bean for {@code IborFutureOptionSecurity}.
    */
   public static final class Meta extends DirectMetaBean {
     /**
@@ -352,49 +454,74 @@ public final class ResolvedIborFutureOption
      * The meta-property for the {@code securityId} property.
      */
     private final MetaProperty<SecurityId> securityId = DirectMetaProperty.ofImmutable(
-        this, "securityId", ResolvedIborFutureOption.class, SecurityId.class);
+        this, "securityId", IborFutureOptionSecurity.class, SecurityId.class);
+    /**
+     * The meta-property for the {@code info} property.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes" })
+    private final MetaProperty<ImmutableMap<SecurityInfoType<?>, Object>> info = DirectMetaProperty.ofImmutable(
+        this, "info", IborFutureOptionSecurity.class, (Class) ImmutableMap.class);
+    /**
+     * The meta-property for the {@code currency} property.
+     */
+    private final MetaProperty<Currency> currency = DirectMetaProperty.ofImmutable(
+        this, "currency", IborFutureOptionSecurity.class, Currency.class);
     /**
      * The meta-property for the {@code putCall} property.
      */
     private final MetaProperty<PutCall> putCall = DirectMetaProperty.ofImmutable(
-        this, "putCall", ResolvedIborFutureOption.class, PutCall.class);
+        this, "putCall", IborFutureOptionSecurity.class, PutCall.class);
     /**
      * The meta-property for the {@code strikePrice} property.
      */
     private final MetaProperty<Double> strikePrice = DirectMetaProperty.ofImmutable(
-        this, "strikePrice", ResolvedIborFutureOption.class, Double.TYPE);
+        this, "strikePrice", IborFutureOptionSecurity.class, Double.TYPE);
     /**
-     * The meta-property for the {@code expiry} property.
+     * The meta-property for the {@code expiryDate} property.
      */
-    private final MetaProperty<ZonedDateTime> expiry = DirectMetaProperty.ofImmutable(
-        this, "expiry", ResolvedIborFutureOption.class, ZonedDateTime.class);
+    private final MetaProperty<LocalDate> expiryDate = DirectMetaProperty.ofImmutable(
+        this, "expiryDate", IborFutureOptionSecurity.class, LocalDate.class);
+    /**
+     * The meta-property for the {@code expiryTime} property.
+     */
+    private final MetaProperty<LocalTime> expiryTime = DirectMetaProperty.ofImmutable(
+        this, "expiryTime", IborFutureOptionSecurity.class, LocalTime.class);
+    /**
+     * The meta-property for the {@code expiryZone} property.
+     */
+    private final MetaProperty<ZoneId> expiryZone = DirectMetaProperty.ofImmutable(
+        this, "expiryZone", IborFutureOptionSecurity.class, ZoneId.class);
     /**
      * The meta-property for the {@code premiumStyle} property.
      */
     private final MetaProperty<FutureOptionPremiumStyle> premiumStyle = DirectMetaProperty.ofImmutable(
-        this, "premiumStyle", ResolvedIborFutureOption.class, FutureOptionPremiumStyle.class);
+        this, "premiumStyle", IborFutureOptionSecurity.class, FutureOptionPremiumStyle.class);
     /**
      * The meta-property for the {@code rounding} property.
      */
     private final MetaProperty<Rounding> rounding = DirectMetaProperty.ofImmutable(
-        this, "rounding", ResolvedIborFutureOption.class, Rounding.class);
+        this, "rounding", IborFutureOptionSecurity.class, Rounding.class);
     /**
-     * The meta-property for the {@code underlyingFuture} property.
+     * The meta-property for the {@code underlyingFutureId} property.
      */
-    private final MetaProperty<ResolvedIborFuture> underlyingFuture = DirectMetaProperty.ofImmutable(
-        this, "underlyingFuture", ResolvedIborFutureOption.class, ResolvedIborFuture.class);
+    private final MetaProperty<SecurityId> underlyingFutureId = DirectMetaProperty.ofImmutable(
+        this, "underlyingFutureId", IborFutureOptionSecurity.class, SecurityId.class);
     /**
      * The meta-properties.
      */
     private final Map<String, MetaProperty<?>> metaPropertyMap$ = new DirectMetaPropertyMap(
         this, null,
         "securityId",
+        "info",
+        "currency",
         "putCall",
         "strikePrice",
-        "expiry",
+        "expiryDate",
+        "expiryTime",
+        "expiryZone",
         "premiumStyle",
         "rounding",
-        "underlyingFuture");
+        "underlyingFutureId");
 
     /**
      * Restricted constructor.
@@ -407,30 +534,38 @@ public final class ResolvedIborFutureOption
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
           return securityId;
+        case 3237038:  // info
+          return info;
+        case 575402001:  // currency
+          return currency;
         case -219971059:  // putCall
           return putCall;
         case 50946231:  // strikePrice
           return strikePrice;
-        case -1289159373:  // expiry
-          return expiry;
+        case -816738431:  // expiryDate
+          return expiryDate;
+        case -816254304:  // expiryTime
+          return expiryTime;
+        case -816069761:  // expiryZone
+          return expiryZone;
         case -1257652838:  // premiumStyle
           return premiumStyle;
         case -142444:  // rounding
           return rounding;
-        case -165476480:  // underlyingFuture
-          return underlyingFuture;
+        case -109104965:  // underlyingFutureId
+          return underlyingFutureId;
       }
       return super.metaPropertyGet(propertyName);
     }
 
     @Override
-    public ResolvedIborFutureOption.Builder builder() {
-      return new ResolvedIborFutureOption.Builder();
+    public IborFutureOptionSecurity.Builder builder() {
+      return new IborFutureOptionSecurity.Builder();
     }
 
     @Override
-    public Class<? extends ResolvedIborFutureOption> beanType() {
-      return ResolvedIborFutureOption.class;
+    public Class<? extends IborFutureOptionSecurity> beanType() {
+      return IborFutureOptionSecurity.class;
     }
 
     @Override
@@ -445,6 +580,22 @@ public final class ResolvedIborFutureOption
      */
     public MetaProperty<SecurityId> securityId() {
       return securityId;
+    }
+
+    /**
+     * The meta-property for the {@code info} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<ImmutableMap<SecurityInfoType<?>, Object>> info() {
+      return info;
+    }
+
+    /**
+     * The meta-property for the {@code currency} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<Currency> currency() {
+      return currency;
     }
 
     /**
@@ -464,11 +615,27 @@ public final class ResolvedIborFutureOption
     }
 
     /**
-     * The meta-property for the {@code expiry} property.
+     * The meta-property for the {@code expiryDate} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<ZonedDateTime> expiry() {
-      return expiry;
+    public MetaProperty<LocalDate> expiryDate() {
+      return expiryDate;
+    }
+
+    /**
+     * The meta-property for the {@code expiryTime} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<LocalTime> expiryTime() {
+      return expiryTime;
+    }
+
+    /**
+     * The meta-property for the {@code expiryZone} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<ZoneId> expiryZone() {
+      return expiryZone;
     }
 
     /**
@@ -488,11 +655,11 @@ public final class ResolvedIborFutureOption
     }
 
     /**
-     * The meta-property for the {@code underlyingFuture} property.
+     * The meta-property for the {@code underlyingFutureId} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<ResolvedIborFuture> underlyingFuture() {
-      return underlyingFuture;
+    public MetaProperty<SecurityId> underlyingFutureId() {
+      return underlyingFutureId;
     }
 
     //-----------------------------------------------------------------------
@@ -500,19 +667,27 @@ public final class ResolvedIborFutureOption
     protected Object propertyGet(Bean bean, String propertyName, boolean quiet) {
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
-          return ((ResolvedIborFutureOption) bean).getSecurityId();
+          return ((IborFutureOptionSecurity) bean).getSecurityId();
+        case 3237038:  // info
+          return ((IborFutureOptionSecurity) bean).getInfo();
+        case 575402001:  // currency
+          return ((IborFutureOptionSecurity) bean).getCurrency();
         case -219971059:  // putCall
-          return ((ResolvedIborFutureOption) bean).getPutCall();
+          return ((IborFutureOptionSecurity) bean).getPutCall();
         case 50946231:  // strikePrice
-          return ((ResolvedIborFutureOption) bean).getStrikePrice();
-        case -1289159373:  // expiry
-          return ((ResolvedIborFutureOption) bean).getExpiry();
+          return ((IborFutureOptionSecurity) bean).getStrikePrice();
+        case -816738431:  // expiryDate
+          return ((IborFutureOptionSecurity) bean).getExpiryDate();
+        case -816254304:  // expiryTime
+          return ((IborFutureOptionSecurity) bean).getExpiryTime();
+        case -816069761:  // expiryZone
+          return ((IborFutureOptionSecurity) bean).getExpiryZone();
         case -1257652838:  // premiumStyle
-          return ((ResolvedIborFutureOption) bean).getPremiumStyle();
+          return ((IborFutureOptionSecurity) bean).getPremiumStyle();
         case -142444:  // rounding
-          return ((ResolvedIborFutureOption) bean).getRounding();
-        case -165476480:  // underlyingFuture
-          return ((ResolvedIborFutureOption) bean).getUnderlyingFuture();
+          return ((IborFutureOptionSecurity) bean).getRounding();
+        case -109104965:  // underlyingFutureId
+          return ((IborFutureOptionSecurity) bean).getUnderlyingFutureId();
       }
       return super.propertyGet(bean, propertyName, quiet);
     }
@@ -530,17 +705,21 @@ public final class ResolvedIborFutureOption
 
   //-----------------------------------------------------------------------
   /**
-   * The bean-builder for {@code ResolvedIborFutureOption}.
+   * The bean-builder for {@code IborFutureOptionSecurity}.
    */
-  public static final class Builder extends DirectFieldsBeanBuilder<ResolvedIborFutureOption> {
+  public static final class Builder extends DirectFieldsBeanBuilder<IborFutureOptionSecurity> {
 
     private SecurityId securityId;
+    private Map<SecurityInfoType<?>, Object> info = ImmutableMap.of();
+    private Currency currency;
     private PutCall putCall;
     private double strikePrice;
-    private ZonedDateTime expiry;
+    private LocalDate expiryDate;
+    private LocalTime expiryTime;
+    private ZoneId expiryZone;
     private FutureOptionPremiumStyle premiumStyle;
     private Rounding rounding;
-    private ResolvedIborFuture underlyingFuture;
+    private SecurityId underlyingFutureId;
 
     /**
      * Restricted constructor.
@@ -553,14 +732,18 @@ public final class ResolvedIborFutureOption
      * Restricted copy constructor.
      * @param beanToCopy  the bean to copy from, not null
      */
-    private Builder(ResolvedIborFutureOption beanToCopy) {
+    private Builder(IborFutureOptionSecurity beanToCopy) {
       this.securityId = beanToCopy.getSecurityId();
+      this.info = beanToCopy.getInfo();
+      this.currency = beanToCopy.getCurrency();
       this.putCall = beanToCopy.getPutCall();
       this.strikePrice = beanToCopy.getStrikePrice();
-      this.expiry = beanToCopy.getExpiry();
+      this.expiryDate = beanToCopy.getExpiryDate();
+      this.expiryTime = beanToCopy.getExpiryTime();
+      this.expiryZone = beanToCopy.getExpiryZone();
       this.premiumStyle = beanToCopy.getPremiumStyle();
       this.rounding = beanToCopy.getRounding();
-      this.underlyingFuture = beanToCopy.getUnderlyingFuture();
+      this.underlyingFutureId = beanToCopy.getUnderlyingFutureId();
     }
 
     //-----------------------------------------------------------------------
@@ -569,28 +752,43 @@ public final class ResolvedIborFutureOption
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
           return securityId;
+        case 3237038:  // info
+          return info;
+        case 575402001:  // currency
+          return currency;
         case -219971059:  // putCall
           return putCall;
         case 50946231:  // strikePrice
           return strikePrice;
-        case -1289159373:  // expiry
-          return expiry;
+        case -816738431:  // expiryDate
+          return expiryDate;
+        case -816254304:  // expiryTime
+          return expiryTime;
+        case -816069761:  // expiryZone
+          return expiryZone;
         case -1257652838:  // premiumStyle
           return premiumStyle;
         case -142444:  // rounding
           return rounding;
-        case -165476480:  // underlyingFuture
-          return underlyingFuture;
+        case -109104965:  // underlyingFutureId
+          return underlyingFutureId;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
       }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Builder set(String propertyName, Object newValue) {
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
           this.securityId = (SecurityId) newValue;
+          break;
+        case 3237038:  // info
+          this.info = (Map<SecurityInfoType<?>, Object>) newValue;
+          break;
+        case 575402001:  // currency
+          this.currency = (Currency) newValue;
           break;
         case -219971059:  // putCall
           this.putCall = (PutCall) newValue;
@@ -598,8 +796,14 @@ public final class ResolvedIborFutureOption
         case 50946231:  // strikePrice
           this.strikePrice = (Double) newValue;
           break;
-        case -1289159373:  // expiry
-          this.expiry = (ZonedDateTime) newValue;
+        case -816738431:  // expiryDate
+          this.expiryDate = (LocalDate) newValue;
+          break;
+        case -816254304:  // expiryTime
+          this.expiryTime = (LocalTime) newValue;
+          break;
+        case -816069761:  // expiryZone
+          this.expiryZone = (ZoneId) newValue;
           break;
         case -1257652838:  // premiumStyle
           this.premiumStyle = (FutureOptionPremiumStyle) newValue;
@@ -607,8 +811,8 @@ public final class ResolvedIborFutureOption
         case -142444:  // rounding
           this.rounding = (Rounding) newValue;
           break;
-        case -165476480:  // underlyingFuture
-          this.underlyingFuture = (ResolvedIborFuture) newValue;
+        case -109104965:  // underlyingFutureId
+          this.underlyingFutureId = (SecurityId) newValue;
           break;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
@@ -641,15 +845,19 @@ public final class ResolvedIborFutureOption
     }
 
     @Override
-    public ResolvedIborFutureOption build() {
-      return new ResolvedIborFutureOption(
+    public IborFutureOptionSecurity build() {
+      return new IborFutureOptionSecurity(
           securityId,
+          info,
+          currency,
           putCall,
           strikePrice,
-          expiry,
+          expiryDate,
+          expiryTime,
+          expiryZone,
           premiumStyle,
           rounding,
-          underlyingFuture);
+          underlyingFutureId);
     }
 
     //-----------------------------------------------------------------------
@@ -663,6 +871,30 @@ public final class ResolvedIborFutureOption
     public Builder securityId(SecurityId securityId) {
       JodaBeanUtils.notNull(securityId, "securityId");
       this.securityId = securityId;
+      return this;
+    }
+
+    /**
+     * Sets the additional security information.
+     * <p>
+     * This stores additional information for the security.
+     * @param info  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder info(Map<SecurityInfoType<?>, Object> info) {
+      JodaBeanUtils.notNull(info, "info");
+      this.info = info;
+      return this;
+    }
+
+    /**
+     * Sets the currency that the option is traded in.
+     * @param currency  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder currency(Currency currency) {
+      JodaBeanUtils.notNull(currency, "currency");
+      this.currency = currency;
       return this;
     }
 
@@ -695,15 +927,42 @@ public final class ResolvedIborFutureOption
     }
 
     /**
-     * Sets the expiry of the option.
+     * Sets the expiry date of the option.
      * <p>
+     * The expiry date is related to the expiry time and time-zone.
      * The date must not be after last trade date of the underlying future.
-     * @param expiry  the new value, not null
+     * @param expiryDate  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder expiry(ZonedDateTime expiry) {
-      JodaBeanUtils.notNull(expiry, "expiry");
-      this.expiry = expiry;
+    public Builder expiryDate(LocalDate expiryDate) {
+      JodaBeanUtils.notNull(expiryDate, "expiryDate");
+      this.expiryDate = expiryDate;
+      return this;
+    }
+
+    /**
+     * Sets the expiry time of the option.
+     * <p>
+     * The expiry time is related to the expiry date and time-zone.
+     * @param expiryTime  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder expiryTime(LocalTime expiryTime) {
+      JodaBeanUtils.notNull(expiryTime, "expiryTime");
+      this.expiryTime = expiryTime;
+      return this;
+    }
+
+    /**
+     * Sets the time-zone of the expiry time.
+     * <p>
+     * The expiry time-zone is related to the expiry date and time.
+     * @param expiryZone  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder expiryZone(ZoneId expiryZone) {
+      JodaBeanUtils.notNull(expiryZone, "expiryZone");
+      this.expiryZone = expiryZone;
       return this;
     }
 
@@ -737,28 +996,32 @@ public final class ResolvedIborFutureOption
     }
 
     /**
-     * Sets the underlying future.
-     * @param underlyingFuture  the new value, not null
+     * Sets the identifier of the underlying future.
+     * @param underlyingFutureId  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder underlyingFuture(ResolvedIborFuture underlyingFuture) {
-      JodaBeanUtils.notNull(underlyingFuture, "underlyingFuture");
-      this.underlyingFuture = underlyingFuture;
+    public Builder underlyingFutureId(SecurityId underlyingFutureId) {
+      JodaBeanUtils.notNull(underlyingFutureId, "underlyingFutureId");
+      this.underlyingFutureId = underlyingFutureId;
       return this;
     }
 
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(256);
-      buf.append("ResolvedIborFutureOption.Builder{");
+      StringBuilder buf = new StringBuilder(384);
+      buf.append("IborFutureOptionSecurity.Builder{");
       buf.append("securityId").append('=').append(JodaBeanUtils.toString(securityId)).append(',').append(' ');
+      buf.append("info").append('=').append(JodaBeanUtils.toString(info)).append(',').append(' ');
+      buf.append("currency").append('=').append(JodaBeanUtils.toString(currency)).append(',').append(' ');
       buf.append("putCall").append('=').append(JodaBeanUtils.toString(putCall)).append(',').append(' ');
       buf.append("strikePrice").append('=').append(JodaBeanUtils.toString(strikePrice)).append(',').append(' ');
-      buf.append("expiry").append('=').append(JodaBeanUtils.toString(expiry)).append(',').append(' ');
+      buf.append("expiryDate").append('=').append(JodaBeanUtils.toString(expiryDate)).append(',').append(' ');
+      buf.append("expiryTime").append('=').append(JodaBeanUtils.toString(expiryTime)).append(',').append(' ');
+      buf.append("expiryZone").append('=').append(JodaBeanUtils.toString(expiryZone)).append(',').append(' ');
       buf.append("premiumStyle").append('=').append(JodaBeanUtils.toString(premiumStyle)).append(',').append(' ');
       buf.append("rounding").append('=').append(JodaBeanUtils.toString(rounding)).append(',').append(' ');
-      buf.append("underlyingFuture").append('=').append(JodaBeanUtils.toString(underlyingFuture));
+      buf.append("underlyingFutureId").append('=').append(JodaBeanUtils.toString(underlyingFutureId));
       buf.append('}');
       return buf.toString();
     }
