@@ -146,10 +146,10 @@ public class DiscountingFixedCouponBondTradePricer {
     ResolvedFixedCouponBond product = trade.getProduct();
     LocalDate standardSettlementDate = product.getSettlementDateOffset().adjust(provider.getValuationDate(), refData);
     LocalDate tradeSettlementDate = trade.getTradeInfo().getSettlementDate().get();
-    StandardId securityId = trade.getSecurityStandardId();
     StandardId legalEntityId = product.getLegalEntityId();
     Currency currency = product.getCurrency();
-    double df = provider.repoCurveDiscountFactors(securityId, legalEntityId, currency).discountFactor(standardSettlementDate);
+    double df = provider.repoCurveDiscountFactors(
+        product.getSecurityId(), legalEntityId, currency).discountFactor(standardSettlementDate);
     double pvStandard =
         (cleanPrice * product.getNotional() + productPricer.accruedInterest(product, standardSettlementDate)) * df;
     if (standardSettlementDate.isEqual(tradeSettlementDate)) {
@@ -199,11 +199,10 @@ public class DiscountingFixedCouponBondTradePricer {
     ResolvedFixedCouponBond product = trade.getProduct();
     LocalDate standardSettlementDate = product.getSettlementDateOffset().adjust(provider.getValuationDate(), refData);
     LocalDate tradeSettlementDate = trade.getTradeInfo().getSettlementDate().get();
-    StandardId securityId = trade.getSecurityStandardId();
     StandardId legalEntityId = product.getLegalEntityId();
     Currency currency = product.getCurrency();
-    double df = provider.repoCurveDiscountFactors(securityId, legalEntityId, currency).discountFactor(
-        standardSettlementDate);
+    double df = provider.repoCurveDiscountFactors(
+        product.getSecurityId(), legalEntityId, currency).discountFactor(standardSettlementDate);
     double pvStandard =
         (cleanPrice * product.getNotional() + productPricer.accruedInterest(product, standardSettlementDate)) * df;
     if (standardSettlementDate.isEqual(tradeSettlementDate)) {
@@ -370,7 +369,7 @@ public class DiscountingFixedCouponBondTradePricer {
   private CurrencyAmount presentValuePayment(ResolvedFixedCouponBondTrade trade, LegalEntityDiscountingProvider provider) {
     ResolvedFixedCouponBond product = trade.getProduct();
     RepoCurveDiscountFactors discountFactors = provider.repoCurveDiscountFactors(
-        product.getLegalEntityId(), trade.getSecurityStandardId().getStandardId(), product.getCurrency());
+        product.getSecurityId(), product.getLegalEntityId(), product.getCurrency());
     return paymentPricer.presentValue(trade.getPayment(), discountFactors.getDiscountFactors());
   }
 
@@ -380,7 +379,7 @@ public class DiscountingFixedCouponBondTradePricer {
 
     ResolvedFixedCouponBond product = trade.getProduct();
     RepoCurveDiscountFactors discountFactors = provider.repoCurveDiscountFactors(
-        product.getLegalEntityId(), trade.getSecurityStandardId().getStandardId(), product.getCurrency());
+        product.getSecurityId(), product.getLegalEntityId(), product.getCurrency());
     PointSensitivityBuilder pt = paymentPricer.presentValueSensitivity(
         trade.getPayment(), discountFactors.getDiscountFactors());
     if (pt instanceof ZeroRateSensitivity) {

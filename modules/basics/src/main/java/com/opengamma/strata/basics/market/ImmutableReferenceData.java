@@ -96,7 +96,7 @@ public final class ImmutableReferenceData
       }
       throw new ClassCastException(Messages.format(
           "Value '{}' does not implement parameterized type '{}' for identifier '{}'",
-          value, id.getClass().getSimpleName(), id));
+          value, id.getReferenceDataType().getSimpleName(), id));
     }
   }
 

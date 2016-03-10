@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2015 - present by OpenGamma Inc. and the OpenGamma group of companies
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
  *
  * Please see distribution for license.
  */
@@ -9,16 +9,15 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 
 import org.joda.beans.Bean;
 import org.joda.beans.BeanDefinition;
 import org.joda.beans.ImmutableBean;
 import org.joda.beans.ImmutableDefaults;
-import org.joda.beans.ImmutableValidator;
 import org.joda.beans.JodaBeanUtils;
 import org.joda.beans.MetaProperty;
 import org.joda.beans.Property;
@@ -28,28 +27,27 @@ import org.joda.beans.impl.direct.DirectMetaBean;
 import org.joda.beans.impl.direct.DirectMetaProperty;
 import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.opengamma.strata.basics.PutCall;
 import com.opengamma.strata.basics.currency.Currency;
 import com.opengamma.strata.basics.market.ReferenceData;
-import com.opengamma.strata.basics.market.Resolvable;
 import com.opengamma.strata.basics.value.Rounding;
-import com.opengamma.strata.collect.ArgChecker;
+import com.opengamma.strata.product.ReferenceSecurity;
 import com.opengamma.strata.product.SecurityId;
-import com.opengamma.strata.product.SecurityProduct;
+import com.opengamma.strata.product.SecurityInfoType;
+import com.opengamma.strata.product.TradeInfo;
 import com.opengamma.strata.product.common.FutureOptionPremiumStyle;
 
 /**
- * A futures option contract, based on bonds.
+ * A security representing a futures contract, based on a basket of fixed coupon bonds.
  * <p>
- * A bond future option is a financial instrument that provides an option based on the future value of
- * fixed coupon bonds. The option is American, exercised at any point up to the exercise time.
- * It handles options with either daily margining or upfront premium.
- * <p>
- * This class represents the structure of a single option contract.
+ * A bond future is a financial instrument that is based on the future value of
+ * a basket of fixed coupon bonds. The profit or loss of a bond future is settled daily.
  */
-@BeanDefinition(constructorScope = "package")
-public final class BondFutureOption
-    implements SecurityProduct, Resolvable<ResolvedBondFutureOption>, ImmutableBean, Serializable {
+@BeanDefinition
+public final class BondFutureOptionSecurity
+    implements ReferenceSecurity, ImmutableBean, Serializable {
 
   /**
    * The security identifier.
@@ -58,6 +56,18 @@ public final class BondFutureOption
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final SecurityId securityId;
+  /**
+   * The additional security information.
+   * <p>
+   * This stores additional information for the security.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final ImmutableMap<SecurityInfoType<?>, Object> info;
+  /**
+   * The currency that the future is traded in.
+   */
+  @PropertyDefinition(validate = "notNull", overrideGet = true)
+  private final Currency currency;
   /**
    * Whether the option is put or call.
    * <p>
@@ -116,10 +126,10 @@ public final class BondFutureOption
   @PropertyDefinition(validate = "notNull")
   private final Rounding rounding;
   /**
-   * The underlying future.
+   * The identifier of the underlying future.
    */
   @PropertyDefinition(validate = "notNull")
-  private final BondFuture underlyingFuture;
+  private final SecurityId underlyingFutureId;
 
   //-------------------------------------------------------------------------
   @ImmutableDefaults
@@ -127,50 +137,52 @@ public final class BondFutureOption
     builder.rounding(Rounding.none());
   }
 
-  @ImmutableValidator
-  private void validate() {
-    ArgChecker.inOrderOrEqual(
-        expiryDate, underlyingFuture.getLastTradeDate(), "expiryDate", "underlyingFuture.lastTradeDate");
+  //-------------------------------------------------------------------------
+  @Override
+  public ImmutableSet<SecurityId> getUnderlyingIds() {
+    return ImmutableSet.of(underlyingFutureId);
   }
 
   //-------------------------------------------------------------------------
+  @SuppressWarnings("unchecked")
   @Override
-  public Currency getCurrency() {
-    return underlyingFuture.getCurrency();
+  public <T> Optional<T> findInfo(SecurityInfoType<T> type) {
+    return Optional.ofNullable((T) info.get(type));
   }
 
-  /**
-   * Gets the expiry date-time.
-   * <p>
-   * The option expires at this date and time.
-   * <p>
-   * The result is returned by combining the expiry date, time and time-zone.
-   * 
-   * @return the expiry date and time
-   */
-  public ZonedDateTime getExpiry() {
-    return expiryDate.atTime(expiryTime).atZone(expiryZone);
+  @Override
+  public BondFutureOption createProduct(ReferenceData refData) {
+    BondFuture underlying = refData.getValue(underlyingFutureId, BondFutureSecurity.class).createProduct(refData);
+    return new BondFutureOption(
+        securityId,
+        putCall,
+        strikePrice,
+        expiryDate,
+        expiryTime,
+        expiryZone,
+        premiumStyle,
+        rounding,
+        underlying);
   }
 
-  //-------------------------------------------------------------------------
   @Override
-  public ResolvedBondFutureOption resolve(ReferenceData refData) {
-    ResolvedBondFuture resolved = underlyingFuture.resolve(refData);
-    return new ResolvedBondFutureOption(securityId, putCall, strikePrice, getExpiry(), premiumStyle, rounding, resolved);
+  public BondFutureOptionTrade createTrade(TradeInfo tradeInfo, long quantity, double tradePrice, ReferenceData refData) {
+    BondFutureOption product = createProduct(refData);
+    return new BondFutureOptionTrade(tradeInfo, product, quantity, tradePrice);
   }
 
   //------------------------- AUTOGENERATED START -------------------------
   ///CLOVER:OFF
   /**
-   * The meta-bean for {@code BondFutureOption}.
+   * The meta-bean for {@code BondFutureOptionSecurity}.
    * @return the meta-bean, not null
    */
-  public static BondFutureOption.Meta meta() {
-    return BondFutureOption.Meta.INSTANCE;
+  public static BondFutureOptionSecurity.Meta meta() {
+    return BondFutureOptionSecurity.Meta.INSTANCE;
   }
 
   static {
-    JodaBeanUtils.registerMetaBean(BondFutureOption.Meta.INSTANCE);
+    JodaBeanUtils.registerMetaBean(BondFutureOptionSecurity.Meta.INSTANCE);
   }
 
   /**
@@ -182,24 +194,14 @@ public final class BondFutureOption
    * Returns a builder used to create an instance of the bean.
    * @return the builder, not null
    */
-  public static BondFutureOption.Builder builder() {
-    return new BondFutureOption.Builder();
+  public static BondFutureOptionSecurity.Builder builder() {
+    return new BondFutureOptionSecurity.Builder();
   }
 
-  /**
-   * Creates an instance.
-   * @param securityId  the value of the property, not null
-   * @param putCall  the value of the property
-   * @param strikePrice  the value of the property
-   * @param expiryDate  the value of the property, not null
-   * @param expiryTime  the value of the property, not null
-   * @param expiryZone  the value of the property, not null
-   * @param premiumStyle  the value of the property, not null
-   * @param rounding  the value of the property, not null
-   * @param underlyingFuture  the value of the property, not null
-   */
-  BondFutureOption(
+  private BondFutureOptionSecurity(
       SecurityId securityId,
+      Map<SecurityInfoType<?>, Object> info,
+      Currency currency,
       PutCall putCall,
       double strikePrice,
       LocalDate expiryDate,
@@ -207,15 +209,19 @@ public final class BondFutureOption
       ZoneId expiryZone,
       FutureOptionPremiumStyle premiumStyle,
       Rounding rounding,
-      BondFuture underlyingFuture) {
+      SecurityId underlyingFutureId) {
     JodaBeanUtils.notNull(securityId, "securityId");
+    JodaBeanUtils.notNull(info, "info");
+    JodaBeanUtils.notNull(currency, "currency");
     JodaBeanUtils.notNull(expiryDate, "expiryDate");
     JodaBeanUtils.notNull(expiryTime, "expiryTime");
     JodaBeanUtils.notNull(expiryZone, "expiryZone");
     JodaBeanUtils.notNull(premiumStyle, "premiumStyle");
     JodaBeanUtils.notNull(rounding, "rounding");
-    JodaBeanUtils.notNull(underlyingFuture, "underlyingFuture");
+    JodaBeanUtils.notNull(underlyingFutureId, "underlyingFutureId");
     this.securityId = securityId;
+    this.info = ImmutableMap.copyOf(info);
+    this.currency = currency;
     this.putCall = putCall;
     this.strikePrice = strikePrice;
     this.expiryDate = expiryDate;
@@ -223,13 +229,12 @@ public final class BondFutureOption
     this.expiryZone = expiryZone;
     this.premiumStyle = premiumStyle;
     this.rounding = rounding;
-    this.underlyingFuture = underlyingFuture;
-    validate();
+    this.underlyingFutureId = underlyingFutureId;
   }
 
   @Override
-  public BondFutureOption.Meta metaBean() {
-    return BondFutureOption.Meta.INSTANCE;
+  public BondFutureOptionSecurity.Meta metaBean() {
+    return BondFutureOptionSecurity.Meta.INSTANCE;
   }
 
   @Override
@@ -252,6 +257,27 @@ public final class BondFutureOption
   @Override
   public SecurityId getSecurityId() {
     return securityId;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the additional security information.
+   * <p>
+   * This stores additional information for the security.
+   * @return the value of the property, not null
+   */
+  public ImmutableMap<SecurityInfoType<?>, Object> getInfo() {
+    return info;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the currency that the future is traded in.
+   * @return the value of the property, not null
+   */
+  @Override
+  public Currency getCurrency() {
+    return currency;
   }
 
   //-----------------------------------------------------------------------
@@ -341,11 +367,11 @@ public final class BondFutureOption
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the underlying future.
+   * Gets the identifier of the underlying future.
    * @return the value of the property, not null
    */
-  public BondFuture getUnderlyingFuture() {
-    return underlyingFuture;
+  public SecurityId getUnderlyingFutureId() {
+    return underlyingFutureId;
   }
 
   //-----------------------------------------------------------------------
@@ -363,8 +389,10 @@ public final class BondFutureOption
       return true;
     }
     if (obj != null && obj.getClass() == this.getClass()) {
-      BondFutureOption other = (BondFutureOption) obj;
+      BondFutureOptionSecurity other = (BondFutureOptionSecurity) obj;
       return JodaBeanUtils.equal(securityId, other.securityId) &&
+          JodaBeanUtils.equal(info, other.info) &&
+          JodaBeanUtils.equal(currency, other.currency) &&
           JodaBeanUtils.equal(putCall, other.putCall) &&
           JodaBeanUtils.equal(strikePrice, other.strikePrice) &&
           JodaBeanUtils.equal(expiryDate, other.expiryDate) &&
@@ -372,7 +400,7 @@ public final class BondFutureOption
           JodaBeanUtils.equal(expiryZone, other.expiryZone) &&
           JodaBeanUtils.equal(premiumStyle, other.premiumStyle) &&
           JodaBeanUtils.equal(rounding, other.rounding) &&
-          JodaBeanUtils.equal(underlyingFuture, other.underlyingFuture);
+          JodaBeanUtils.equal(underlyingFutureId, other.underlyingFutureId);
     }
     return false;
   }
@@ -381,6 +409,8 @@ public final class BondFutureOption
   public int hashCode() {
     int hash = getClass().hashCode();
     hash = hash * 31 + JodaBeanUtils.hashCode(securityId);
+    hash = hash * 31 + JodaBeanUtils.hashCode(info);
+    hash = hash * 31 + JodaBeanUtils.hashCode(currency);
     hash = hash * 31 + JodaBeanUtils.hashCode(putCall);
     hash = hash * 31 + JodaBeanUtils.hashCode(strikePrice);
     hash = hash * 31 + JodaBeanUtils.hashCode(expiryDate);
@@ -388,15 +418,17 @@ public final class BondFutureOption
     hash = hash * 31 + JodaBeanUtils.hashCode(expiryZone);
     hash = hash * 31 + JodaBeanUtils.hashCode(premiumStyle);
     hash = hash * 31 + JodaBeanUtils.hashCode(rounding);
-    hash = hash * 31 + JodaBeanUtils.hashCode(underlyingFuture);
+    hash = hash * 31 + JodaBeanUtils.hashCode(underlyingFutureId);
     return hash;
   }
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(320);
-    buf.append("BondFutureOption{");
+    StringBuilder buf = new StringBuilder(384);
+    buf.append("BondFutureOptionSecurity{");
     buf.append("securityId").append('=').append(securityId).append(',').append(' ');
+    buf.append("info").append('=').append(info).append(',').append(' ');
+    buf.append("currency").append('=').append(currency).append(',').append(' ');
     buf.append("putCall").append('=').append(putCall).append(',').append(' ');
     buf.append("strikePrice").append('=').append(strikePrice).append(',').append(' ');
     buf.append("expiryDate").append('=').append(expiryDate).append(',').append(' ');
@@ -404,14 +436,14 @@ public final class BondFutureOption
     buf.append("expiryZone").append('=').append(expiryZone).append(',').append(' ');
     buf.append("premiumStyle").append('=').append(premiumStyle).append(',').append(' ');
     buf.append("rounding").append('=').append(rounding).append(',').append(' ');
-    buf.append("underlyingFuture").append('=').append(JodaBeanUtils.toString(underlyingFuture));
+    buf.append("underlyingFutureId").append('=').append(JodaBeanUtils.toString(underlyingFutureId));
     buf.append('}');
     return buf.toString();
   }
 
   //-----------------------------------------------------------------------
   /**
-   * The meta-bean for {@code BondFutureOption}.
+   * The meta-bean for {@code BondFutureOptionSecurity}.
    */
   public static final class Meta extends DirectMetaBean {
     /**
@@ -423,53 +455,66 @@ public final class BondFutureOption
      * The meta-property for the {@code securityId} property.
      */
     private final MetaProperty<SecurityId> securityId = DirectMetaProperty.ofImmutable(
-        this, "securityId", BondFutureOption.class, SecurityId.class);
+        this, "securityId", BondFutureOptionSecurity.class, SecurityId.class);
+    /**
+     * The meta-property for the {@code info} property.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes" })
+    private final MetaProperty<ImmutableMap<SecurityInfoType<?>, Object>> info = DirectMetaProperty.ofImmutable(
+        this, "info", BondFutureOptionSecurity.class, (Class) ImmutableMap.class);
+    /**
+     * The meta-property for the {@code currency} property.
+     */
+    private final MetaProperty<Currency> currency = DirectMetaProperty.ofImmutable(
+        this, "currency", BondFutureOptionSecurity.class, Currency.class);
     /**
      * The meta-property for the {@code putCall} property.
      */
     private final MetaProperty<PutCall> putCall = DirectMetaProperty.ofImmutable(
-        this, "putCall", BondFutureOption.class, PutCall.class);
+        this, "putCall", BondFutureOptionSecurity.class, PutCall.class);
     /**
      * The meta-property for the {@code strikePrice} property.
      */
     private final MetaProperty<Double> strikePrice = DirectMetaProperty.ofImmutable(
-        this, "strikePrice", BondFutureOption.class, Double.TYPE);
+        this, "strikePrice", BondFutureOptionSecurity.class, Double.TYPE);
     /**
      * The meta-property for the {@code expiryDate} property.
      */
     private final MetaProperty<LocalDate> expiryDate = DirectMetaProperty.ofImmutable(
-        this, "expiryDate", BondFutureOption.class, LocalDate.class);
+        this, "expiryDate", BondFutureOptionSecurity.class, LocalDate.class);
     /**
      * The meta-property for the {@code expiryTime} property.
      */
     private final MetaProperty<LocalTime> expiryTime = DirectMetaProperty.ofImmutable(
-        this, "expiryTime", BondFutureOption.class, LocalTime.class);
+        this, "expiryTime", BondFutureOptionSecurity.class, LocalTime.class);
     /**
      * The meta-property for the {@code expiryZone} property.
      */
     private final MetaProperty<ZoneId> expiryZone = DirectMetaProperty.ofImmutable(
-        this, "expiryZone", BondFutureOption.class, ZoneId.class);
+        this, "expiryZone", BondFutureOptionSecurity.class, ZoneId.class);
     /**
      * The meta-property for the {@code premiumStyle} property.
      */
     private final MetaProperty<FutureOptionPremiumStyle> premiumStyle = DirectMetaProperty.ofImmutable(
-        this, "premiumStyle", BondFutureOption.class, FutureOptionPremiumStyle.class);
+        this, "premiumStyle", BondFutureOptionSecurity.class, FutureOptionPremiumStyle.class);
     /**
      * The meta-property for the {@code rounding} property.
      */
     private final MetaProperty<Rounding> rounding = DirectMetaProperty.ofImmutable(
-        this, "rounding", BondFutureOption.class, Rounding.class);
+        this, "rounding", BondFutureOptionSecurity.class, Rounding.class);
     /**
-     * The meta-property for the {@code underlyingFuture} property.
+     * The meta-property for the {@code underlyingFutureId} property.
      */
-    private final MetaProperty<BondFuture> underlyingFuture = DirectMetaProperty.ofImmutable(
-        this, "underlyingFuture", BondFutureOption.class, BondFuture.class);
+    private final MetaProperty<SecurityId> underlyingFutureId = DirectMetaProperty.ofImmutable(
+        this, "underlyingFutureId", BondFutureOptionSecurity.class, SecurityId.class);
     /**
      * The meta-properties.
      */
     private final Map<String, MetaProperty<?>> metaPropertyMap$ = new DirectMetaPropertyMap(
         this, null,
         "securityId",
+        "info",
+        "currency",
         "putCall",
         "strikePrice",
         "expiryDate",
@@ -477,7 +522,7 @@ public final class BondFutureOption
         "expiryZone",
         "premiumStyle",
         "rounding",
-        "underlyingFuture");
+        "underlyingFutureId");
 
     /**
      * Restricted constructor.
@@ -490,6 +535,10 @@ public final class BondFutureOption
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
           return securityId;
+        case 3237038:  // info
+          return info;
+        case 575402001:  // currency
+          return currency;
         case -219971059:  // putCall
           return putCall;
         case 50946231:  // strikePrice
@@ -504,20 +553,20 @@ public final class BondFutureOption
           return premiumStyle;
         case -142444:  // rounding
           return rounding;
-        case -165476480:  // underlyingFuture
-          return underlyingFuture;
+        case -109104965:  // underlyingFutureId
+          return underlyingFutureId;
       }
       return super.metaPropertyGet(propertyName);
     }
 
     @Override
-    public BondFutureOption.Builder builder() {
-      return new BondFutureOption.Builder();
+    public BondFutureOptionSecurity.Builder builder() {
+      return new BondFutureOptionSecurity.Builder();
     }
 
     @Override
-    public Class<? extends BondFutureOption> beanType() {
-      return BondFutureOption.class;
+    public Class<? extends BondFutureOptionSecurity> beanType() {
+      return BondFutureOptionSecurity.class;
     }
 
     @Override
@@ -532,6 +581,22 @@ public final class BondFutureOption
      */
     public MetaProperty<SecurityId> securityId() {
       return securityId;
+    }
+
+    /**
+     * The meta-property for the {@code info} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<ImmutableMap<SecurityInfoType<?>, Object>> info() {
+      return info;
+    }
+
+    /**
+     * The meta-property for the {@code currency} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<Currency> currency() {
+      return currency;
     }
 
     /**
@@ -591,11 +656,11 @@ public final class BondFutureOption
     }
 
     /**
-     * The meta-property for the {@code underlyingFuture} property.
+     * The meta-property for the {@code underlyingFutureId} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<BondFuture> underlyingFuture() {
-      return underlyingFuture;
+    public MetaProperty<SecurityId> underlyingFutureId() {
+      return underlyingFutureId;
     }
 
     //-----------------------------------------------------------------------
@@ -603,23 +668,27 @@ public final class BondFutureOption
     protected Object propertyGet(Bean bean, String propertyName, boolean quiet) {
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
-          return ((BondFutureOption) bean).getSecurityId();
+          return ((BondFutureOptionSecurity) bean).getSecurityId();
+        case 3237038:  // info
+          return ((BondFutureOptionSecurity) bean).getInfo();
+        case 575402001:  // currency
+          return ((BondFutureOptionSecurity) bean).getCurrency();
         case -219971059:  // putCall
-          return ((BondFutureOption) bean).getPutCall();
+          return ((BondFutureOptionSecurity) bean).getPutCall();
         case 50946231:  // strikePrice
-          return ((BondFutureOption) bean).getStrikePrice();
+          return ((BondFutureOptionSecurity) bean).getStrikePrice();
         case -816738431:  // expiryDate
-          return ((BondFutureOption) bean).getExpiryDate();
+          return ((BondFutureOptionSecurity) bean).getExpiryDate();
         case -816254304:  // expiryTime
-          return ((BondFutureOption) bean).getExpiryTime();
+          return ((BondFutureOptionSecurity) bean).getExpiryTime();
         case -816069761:  // expiryZone
-          return ((BondFutureOption) bean).getExpiryZone();
+          return ((BondFutureOptionSecurity) bean).getExpiryZone();
         case -1257652838:  // premiumStyle
-          return ((BondFutureOption) bean).getPremiumStyle();
+          return ((BondFutureOptionSecurity) bean).getPremiumStyle();
         case -142444:  // rounding
-          return ((BondFutureOption) bean).getRounding();
-        case -165476480:  // underlyingFuture
-          return ((BondFutureOption) bean).getUnderlyingFuture();
+          return ((BondFutureOptionSecurity) bean).getRounding();
+        case -109104965:  // underlyingFutureId
+          return ((BondFutureOptionSecurity) bean).getUnderlyingFutureId();
       }
       return super.propertyGet(bean, propertyName, quiet);
     }
@@ -637,11 +706,13 @@ public final class BondFutureOption
 
   //-----------------------------------------------------------------------
   /**
-   * The bean-builder for {@code BondFutureOption}.
+   * The bean-builder for {@code BondFutureOptionSecurity}.
    */
-  public static final class Builder extends DirectFieldsBeanBuilder<BondFutureOption> {
+  public static final class Builder extends DirectFieldsBeanBuilder<BondFutureOptionSecurity> {
 
     private SecurityId securityId;
+    private Map<SecurityInfoType<?>, Object> info = ImmutableMap.of();
+    private Currency currency;
     private PutCall putCall;
     private double strikePrice;
     private LocalDate expiryDate;
@@ -649,7 +720,7 @@ public final class BondFutureOption
     private ZoneId expiryZone;
     private FutureOptionPremiumStyle premiumStyle;
     private Rounding rounding;
-    private BondFuture underlyingFuture;
+    private SecurityId underlyingFutureId;
 
     /**
      * Restricted constructor.
@@ -662,8 +733,10 @@ public final class BondFutureOption
      * Restricted copy constructor.
      * @param beanToCopy  the bean to copy from, not null
      */
-    private Builder(BondFutureOption beanToCopy) {
+    private Builder(BondFutureOptionSecurity beanToCopy) {
       this.securityId = beanToCopy.getSecurityId();
+      this.info = beanToCopy.getInfo();
+      this.currency = beanToCopy.getCurrency();
       this.putCall = beanToCopy.getPutCall();
       this.strikePrice = beanToCopy.getStrikePrice();
       this.expiryDate = beanToCopy.getExpiryDate();
@@ -671,7 +744,7 @@ public final class BondFutureOption
       this.expiryZone = beanToCopy.getExpiryZone();
       this.premiumStyle = beanToCopy.getPremiumStyle();
       this.rounding = beanToCopy.getRounding();
-      this.underlyingFuture = beanToCopy.getUnderlyingFuture();
+      this.underlyingFutureId = beanToCopy.getUnderlyingFutureId();
     }
 
     //-----------------------------------------------------------------------
@@ -680,6 +753,10 @@ public final class BondFutureOption
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
           return securityId;
+        case 3237038:  // info
+          return info;
+        case 575402001:  // currency
+          return currency;
         case -219971059:  // putCall
           return putCall;
         case 50946231:  // strikePrice
@@ -694,18 +771,25 @@ public final class BondFutureOption
           return premiumStyle;
         case -142444:  // rounding
           return rounding;
-        case -165476480:  // underlyingFuture
-          return underlyingFuture;
+        case -109104965:  // underlyingFutureId
+          return underlyingFutureId;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
       }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Builder set(String propertyName, Object newValue) {
       switch (propertyName.hashCode()) {
         case 1574023291:  // securityId
           this.securityId = (SecurityId) newValue;
+          break;
+        case 3237038:  // info
+          this.info = (Map<SecurityInfoType<?>, Object>) newValue;
+          break;
+        case 575402001:  // currency
+          this.currency = (Currency) newValue;
           break;
         case -219971059:  // putCall
           this.putCall = (PutCall) newValue;
@@ -728,8 +812,8 @@ public final class BondFutureOption
         case -142444:  // rounding
           this.rounding = (Rounding) newValue;
           break;
-        case -165476480:  // underlyingFuture
-          this.underlyingFuture = (BondFuture) newValue;
+        case -109104965:  // underlyingFutureId
+          this.underlyingFutureId = (SecurityId) newValue;
           break;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
@@ -762,9 +846,11 @@ public final class BondFutureOption
     }
 
     @Override
-    public BondFutureOption build() {
-      return new BondFutureOption(
+    public BondFutureOptionSecurity build() {
+      return new BondFutureOptionSecurity(
           securityId,
+          info,
+          currency,
           putCall,
           strikePrice,
           expiryDate,
@@ -772,7 +858,7 @@ public final class BondFutureOption
           expiryZone,
           premiumStyle,
           rounding,
-          underlyingFuture);
+          underlyingFutureId);
     }
 
     //-----------------------------------------------------------------------
@@ -786,6 +872,30 @@ public final class BondFutureOption
     public Builder securityId(SecurityId securityId) {
       JodaBeanUtils.notNull(securityId, "securityId");
       this.securityId = securityId;
+      return this;
+    }
+
+    /**
+     * Sets the additional security information.
+     * <p>
+     * This stores additional information for the security.
+     * @param info  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder info(Map<SecurityInfoType<?>, Object> info) {
+      JodaBeanUtils.notNull(info, "info");
+      this.info = info;
+      return this;
+    }
+
+    /**
+     * Sets the currency that the future is traded in.
+     * @param currency  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder currency(Currency currency) {
+      JodaBeanUtils.notNull(currency, "currency");
+      this.currency = currency;
       return this;
     }
 
@@ -887,22 +997,24 @@ public final class BondFutureOption
     }
 
     /**
-     * Sets the underlying future.
-     * @param underlyingFuture  the new value, not null
+     * Sets the identifier of the underlying future.
+     * @param underlyingFutureId  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder underlyingFuture(BondFuture underlyingFuture) {
-      JodaBeanUtils.notNull(underlyingFuture, "underlyingFuture");
-      this.underlyingFuture = underlyingFuture;
+    public Builder underlyingFutureId(SecurityId underlyingFutureId) {
+      JodaBeanUtils.notNull(underlyingFutureId, "underlyingFutureId");
+      this.underlyingFutureId = underlyingFutureId;
       return this;
     }
 
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(320);
-      buf.append("BondFutureOption.Builder{");
+      StringBuilder buf = new StringBuilder(384);
+      buf.append("BondFutureOptionSecurity.Builder{");
       buf.append("securityId").append('=').append(JodaBeanUtils.toString(securityId)).append(',').append(' ');
+      buf.append("info").append('=').append(JodaBeanUtils.toString(info)).append(',').append(' ');
+      buf.append("currency").append('=').append(JodaBeanUtils.toString(currency)).append(',').append(' ');
       buf.append("putCall").append('=').append(JodaBeanUtils.toString(putCall)).append(',').append(' ');
       buf.append("strikePrice").append('=').append(JodaBeanUtils.toString(strikePrice)).append(',').append(' ');
       buf.append("expiryDate").append('=').append(JodaBeanUtils.toString(expiryDate)).append(',').append(' ');
@@ -910,7 +1022,7 @@ public final class BondFutureOption
       buf.append("expiryZone").append('=').append(JodaBeanUtils.toString(expiryZone)).append(',').append(' ');
       buf.append("premiumStyle").append('=').append(JodaBeanUtils.toString(premiumStyle)).append(',').append(' ');
       buf.append("rounding").append('=').append(JodaBeanUtils.toString(rounding)).append(',').append(' ');
-      buf.append("underlyingFuture").append('=').append(JodaBeanUtils.toString(underlyingFuture));
+      buf.append("underlyingFutureId").append('=').append(JodaBeanUtils.toString(underlyingFutureId));
       buf.append('}');
       return buf.toString();
     }
