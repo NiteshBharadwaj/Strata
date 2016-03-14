@@ -85,7 +85,7 @@ public interface Surface {
    * @return the sensitivity at the x/y/ point
    * @throws RuntimeException if the sensitivity cannot be calculated
    */
-  public abstract Map<DoublesPair, Double> zValueParameterSensitivity(double x, double y);
+  public abstract SurfaceUnitParameterSensitivity zValueParameterSensitivity(double x, double y);
 
   /**
    * Computes the sensitivity of the z-value with respect to the surface parameters.
@@ -96,7 +96,7 @@ public interface Surface {
    * @return the sensitivity at the x/y/ point
    * @throws RuntimeException if the sensitivity cannot be calculated
    */
-  public default Map<DoublesPair, Double> zValueParameterSensitivity(DoublesPair xyPair) {
+  public default SurfaceUnitParameterSensitivity zValueParameterSensitivity(DoublesPair xyPair) {
     return zValueParameterSensitivity(xyPair.getFirst(), xyPair.getSecond());
   }
 

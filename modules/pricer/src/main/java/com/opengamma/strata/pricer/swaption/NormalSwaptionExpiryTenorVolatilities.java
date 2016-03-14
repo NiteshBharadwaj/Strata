@@ -41,6 +41,7 @@ import com.opengamma.strata.market.surface.NodalSurface;
 import com.opengamma.strata.market.surface.SurfaceCurrencyParameterSensitivity;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
 import com.opengamma.strata.market.surface.SurfaceParameterMetadata;
+import com.opengamma.strata.market.surface.SurfaceUnitParameterSensitivity;
 import com.opengamma.strata.market.surface.meta.SwaptionSurfaceExpiryTenorNodeMetadata;
 import com.opengamma.strata.pricer.impl.option.NormalFormulaRepository;
 import com.opengamma.strata.product.swap.type.FixedIborSwapConvention;
@@ -139,44 +140,12 @@ public final class NormalSwaptionExpiryTenorVolatilities
         "Swap convention of provider must be the same as swap convention of swaption sensitivity");
     double expiry = relativeTime(point.getExpiry());
     double tenor = point.getTenor();
-    // copy to ImmutableMap to lock order (keySet and values used separately but must match)
-    Map<DoublesPair, Double> result = ImmutableMap.copyOf(surface.zValueParameterSensitivity(expiry, tenor));
+    SurfaceUnitParameterSensitivity result = surface.zValueParameterSensitivity(expiry, tenor);
     SurfaceCurrencyParameterSensitivity parameterSensi = SurfaceCurrencyParameterSensitivity.of(
-        updateSurfaceMetadata(result.keySet()),
+        result.getMetadata(),
         point.getCurrency(),
-        DoubleArray.copyOf(Doubles.toArray(result.values())));
+        result.getSensitivity());
     return parameterSensi.multipliedBy(point.getSensitivity());
-  }
-
-  private SurfaceMetadata updateSurfaceMetadata(Set<DoublesPair> pairs) {
-    SurfaceMetadata surfaceMetadata = surface.getMetadata();
-    List<SurfaceParameterMetadata> sortedMetaList = new ArrayList<SurfaceParameterMetadata>();
-    if (surfaceMetadata.getParameterMetadata().isPresent()) {
-      List<SurfaceParameterMetadata> metaList =
-          new ArrayList<SurfaceParameterMetadata>(surfaceMetadata.getParameterMetadata().get());
-      for (DoublesPair pair : pairs) {
-        metadataLoop:
-        for (SurfaceParameterMetadata parameterMetadata : metaList) {
-          ArgChecker.isTrue(parameterMetadata instanceof SwaptionSurfaceExpiryTenorNodeMetadata,
-              "Surface parameter metadata must be instance of SwaptionVolatilitySurfaceExpiryTenorNodeMetadata");
-          SwaptionSurfaceExpiryTenorNodeMetadata casted =
-              (SwaptionSurfaceExpiryTenorNodeMetadata) parameterMetadata;
-          if (pair.getFirst() == casted.getYearFraction() && pair.getSecond() == casted.getTenor()) {
-            sortedMetaList.add(casted);
-            metaList.remove(parameterMetadata);
-            break metadataLoop;
-          }
-        }
-      }
-      ArgChecker.isTrue(metaList.size() == 0, "Mismatch between surface parameter metadata list and doubles pair list");
-    } else {
-      for (DoublesPair pair : pairs) {
-        SwaptionSurfaceExpiryTenorNodeMetadata parameterMetadata =
-            SwaptionSurfaceExpiryTenorNodeMetadata.of(pair.getFirst(), pair.getSecond());
-        sortedMetaList.add(parameterMetadata);
-      }
-    }
-    return surfaceMetadata.withParameterMetadata(sortedMetaList);
   }
 
   //-------------------------------------------------------------------------

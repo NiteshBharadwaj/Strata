@@ -8,6 +8,7 @@ package com.opengamma.strata.pricer.fx;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -31,12 +32,14 @@ import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.collect.tuple.DoublesPair;
 import com.opengamma.strata.market.ValueType;
+import com.opengamma.strata.market.option.DeltaStrike;
 import com.opengamma.strata.market.option.SimpleStrike;
 import com.opengamma.strata.market.sensitivity.FxOptionSensitivity;
 import com.opengamma.strata.market.surface.DefaultSurfaceMetadata;
 import com.opengamma.strata.market.surface.NodalSurface;
 import com.opengamma.strata.market.surface.SurfaceCurrencyParameterSensitivity;
 import com.opengamma.strata.market.surface.SurfaceParameterMetadata;
+import com.opengamma.strata.market.surface.SurfaceUnitParameterSensitivity;
 import com.opengamma.strata.market.surface.meta.FxVolatilitySurfaceYearFractionNodeMetadata;
 
 /**
@@ -115,13 +118,16 @@ public final class BlackVolatilitySurfaceFxProvider
     double expiryTime = relativeTime(point.getExpiryDateTime());
     double strike = point.getCurrencyPair().isInverse(currencyPair) ? 1d / point.getStrike() : point.getStrike();
     double pointValue = point.getSensitivity();
-    Map<DoublesPair, Double> result = surface.zValueParameterSensitivity(DoublesPair.of(expiryTime, strike));
+    SurfaceUnitParameterSensitivity result = surface.zValueParameterSensitivity(DoublesPair.of(expiryTime, strike));
+    DoubleArray times = surface.getXValues();
+    DoubleArray strikes = surface.getYValues();
+    int paramCount = times.size();
     List<Double> sensiList = new ArrayList<Double>();
-    List<SurfaceParameterMetadata> paramList = new ArrayList<SurfaceParameterMetadata>();
-    for (DoublesPair pair : result.keySet()) {
-      sensiList.add(result.get(pair) * pointValue);
+    List<SurfaceParameterMetadata> paramList = new LinkedList<SurfaceParameterMetadata>();
+    for (int i = 0; i < paramCount; ++i) {
+      sensiList.add(result.getSensitivity().get(i) * pointValue);
       SurfaceParameterMetadata parameterMetadata = FxVolatilitySurfaceYearFractionNodeMetadata.of(
-          pair.getFirst(), SimpleStrike.of(pair.getSecond()), currencyPair);
+          times.get(i), SimpleStrike.of(strikes.get(i)), currencyPair);
       paramList.add(parameterMetadata);
     }
     DefaultSurfaceMetadata metadata = DefaultSurfaceMetadata.builder()

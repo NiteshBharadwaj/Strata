@@ -11,6 +11,9 @@ import static com.opengamma.strata.collect.TestHelper.coverBeanEquals;
 import static com.opengamma.strata.collect.TestHelper.coverImmutableBean;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.testng.annotations.Test;
@@ -98,8 +101,9 @@ public class InterpolatedNodalSurfaceTest {
 
     Map<Double, Interpolator1DDataBundle> bundle = INTERPOLATOR.getDataBundle(DATA);
     assertThat(test.zValue(1.5d, 3.7d)).isEqualTo(INTERPOLATOR.interpolate(bundle, DoublesPair.of(1.5d, 3.7d)));
-    assertThat(test.zValueParameterSensitivity(1.5d, 1.5d)).isEqualTo(
-        INTERPOLATOR.getNodeSensitivitiesForValue(bundle, DoublesPair.of(1.5d, 1.5d)));
+    List<Double> sensiValues = test.zValueParameterSensitivity(1.5d, 1.5d).getSensitivity().toList();
+    List<Double> interpolatorSensiValues = new ArrayList<Double>(INTERPOLATOR.getNodeSensitivitiesForValue(bundle, DoublesPair.of(1.5d, 1.5d)).values());
+    assertThat(sensiValues).isEqualTo(interpolatorSensiValues);
   }
 
   public void test_lookup_byPair() {
@@ -112,8 +116,9 @@ public class InterpolatedNodalSurfaceTest {
 
     Map<Double, Interpolator1DDataBundle> bundle = INTERPOLATOR.getDataBundle(DATA);
     assertThat(test.zValue(DoublesPair.of(1.5d, 3.7d))).isEqualTo(INTERPOLATOR.interpolate(bundle, DoublesPair.of(1.5d, 3.7d)));
-    assertThat(test.zValueParameterSensitivity(DoublesPair.of(1.5d, 1.5d))).isEqualTo(
-        INTERPOLATOR.getNodeSensitivitiesForValue(bundle, DoublesPair.of(1.5d, 1.5d)));
+    List<Double> sensiValues = test.zValueParameterSensitivity(DoublesPair.of(1.5d, 1.5d)).getSensitivity().toList();
+    List<Double> interpolatorSensiValues = new ArrayList<Double>(INTERPOLATOR.getNodeSensitivitiesForValue(bundle, DoublesPair.of(1.5d, 1.5d)).values());
+    assertThat(sensiValues).isEqualTo(interpolatorSensiValues);
   }
 
   //-------------------------------------------------------------------------
