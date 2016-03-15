@@ -54,6 +54,7 @@ import com.opengamma.strata.pricer.DiscountingPaymentPricer;
 import com.opengamma.strata.pricer.impl.bond.DiscountingFixedCouponBondPaymentPeriodPricer;
 import com.opengamma.strata.pricer.rate.LegalEntityDiscountingProvider;
 import com.opengamma.strata.pricer.sensitivity.RatesFiniteDifferenceSensitivityCalculator;
+import com.opengamma.strata.product.SecurityId;
 import com.opengamma.strata.product.TradeInfo;
 import com.opengamma.strata.product.bond.FixedCouponBond;
 import com.opengamma.strata.product.bond.FixedCouponBondPaymentPeriod;
@@ -117,12 +118,13 @@ public class DiscountingFixedCouponBondTradePricerTest {
       START_DATE, END_DATE, Frequency.P6M, BUSINESS_ADJUST, StubConvention.SHORT_INITIAL, false);
   private static final DaysAdjustment EX_COUPON = DaysAdjustment.ofCalendarDays(-5, BUSINESS_ADJUST);
   private static final ResolvedFixedCouponBond PRODUCT = FixedCouponBond.builder()
+      .securityId(SecurityId.of(SECURITY_ID))
       .dayCount(DAY_COUNT)
       .fixedRate(FIXED_RATE)
       .legalEntityId(ISSUER_ID)
       .currency(EUR)
       .notional(NOTIONAL)
-      .periodicSchedule(PERIOD_SCHEDULE)
+      .accrualSchedule(PERIOD_SCHEDULE)
       .settlementDateOffset(DATE_OFFSET)
       .yieldConvention(YIELD_CONVENTION)
       .exCouponPeriod(EX_COUPON)
@@ -134,17 +136,17 @@ public class DiscountingFixedCouponBondTradePricerTest {
   private static final ResolvedFixedCouponBondTrade TRADE = ResolvedFixedCouponBondTrade.builder()
       .tradeInfo(TRADE_INFO)
       .product(PRODUCT)
-      .securityStandardId(SECURITY_ID)
       .quantity(QUANTITY)
       .payment(UPFRONT_PAYMENT)
       .build();
   private static final ResolvedFixedCouponBond PRODUCT_NO_EXCOUPON = FixedCouponBond.builder()
+      .securityId(SecurityId.of(SECURITY_ID))
       .dayCount(DAY_COUNT)
       .fixedRate(FIXED_RATE)
       .legalEntityId(ISSUER_ID)
       .currency(EUR)
       .notional(NOTIONAL)
-      .periodicSchedule(PERIOD_SCHEDULE)
+      .accrualSchedule(PERIOD_SCHEDULE)
       .settlementDateOffset(DATE_OFFSET)
       .yieldConvention(YIELD_CONVENTION)
       .build()
@@ -153,7 +155,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
   private static final ResolvedFixedCouponBondTrade TRADE_NO_EXCOUPON = ResolvedFixedCouponBondTrade.builder()
       .tradeInfo(TRADE_INFO)
       .product(PRODUCT_NO_EXCOUPON)
-      .securityStandardId(SECURITY_ID)
       .quantity(QUANTITY)
       .payment(UPFRONT_PAYMENT)
       .build();
@@ -255,7 +256,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -264,7 +264,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -277,7 +276,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnDetachment = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_DETACHMENT)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -287,7 +285,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBtwnDetachmentCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BTWN_DETACHMENT_COUPON)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -300,7 +297,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -309,7 +305,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -319,7 +314,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnDetachment = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_DETACHMENT)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -329,7 +323,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBtwnDetachmentCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BTWN_DETACHMENT_COUPON)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -342,7 +335,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -351,7 +343,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -364,7 +355,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_COUPON)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -376,7 +366,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -385,7 +374,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -396,7 +384,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_COUPON)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -500,7 +487,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade1 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo1)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -530,7 +516,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade2 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo2)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -550,7 +535,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade3 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo3)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -572,7 +556,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade4 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo4)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -601,7 +584,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade5 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo5)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -617,7 +599,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade6 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -643,7 +624,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade1 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo1)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -673,7 +653,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade2 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo2)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -693,7 +672,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade3 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo3)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -715,7 +693,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade4 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo4)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -745,7 +722,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade5 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(tradeInfo5)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -761,7 +737,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade trade6 = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -777,7 +752,7 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   //-------------------------------------------------------------------------
   public void test_presentValueFromCleanPrice_coherency() {
-    double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurves(PRODUCT, SECURITY_ID, PROVIDER, REF_DATA);
+    double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurves(PRODUCT, PROVIDER, REF_DATA);
     LocalDate standardSettlementDate = PRODUCT.getSettlementDateOffset().adjust(PROVIDER.getValuationDate(), REF_DATA);
     double priceCleanComputed = PRODUCT_PRICER.cleanPriceFromDirtyPrice(PRODUCT, standardSettlementDate, priceDirty);
     CurrencyAmount pvCleanPrice = TRADE_PRICER.presentValueFromCleanPrice(TRADE, PROVIDER, REF_DATA, priceCleanComputed);
@@ -787,7 +762,7 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   public void test_presentValueFromCleanPriceWithZSpread_continuous_coherency() {
     double priceDirty = PRODUCT_PRICER
-        .dirtyPriceFromCurvesWithZSpread(PRODUCT, SECURITY_ID, PROVIDER, REF_DATA, Z_SPREAD, CONTINUOUS, 0);
+        .dirtyPriceFromCurvesWithZSpread(PRODUCT, PROVIDER, REF_DATA, Z_SPREAD, CONTINUOUS, 0);
     LocalDate standardSettlementDate = PRODUCT.getSettlementDateOffset().adjust(PROVIDER.getValuationDate(), REF_DATA);
     double priceCleanComputed = PRODUCT_PRICER.cleanPriceFromDirtyPrice(PRODUCT, standardSettlementDate, priceDirty);
     CurrencyAmount pvCleanPrice = TRADE_PRICER.presentValueFromCleanPriceWithZSpread(
@@ -798,7 +773,7 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   public void test_presentValueFromCleanPriceWithZSpread_periodic_coherency() {
     double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurvesWithZSpread(
-        PRODUCT, SECURITY_ID, PROVIDER, REF_DATA, Z_SPREAD, PERIODIC, PERIOD_PER_YEAR);
+        PRODUCT, PROVIDER, REF_DATA, Z_SPREAD, PERIODIC, PERIOD_PER_YEAR);
     LocalDate standardSettlementDate = PRODUCT.getSettlementDateOffset().adjust(PROVIDER.getValuationDate(), REF_DATA);
     double priceCleanComputed = PRODUCT_PRICER.cleanPriceFromDirtyPrice(PRODUCT, standardSettlementDate, priceDirty);
     CurrencyAmount pvCleanPrice = TRADE_PRICER.presentValueFromCleanPriceWithZSpread(
@@ -809,7 +784,7 @@ public class DiscountingFixedCouponBondTradePricerTest {
   }
 
   public void test_presentValueFromCleanPrice_noExcoupon_coherency() {
-    double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurves(PRODUCT_NO_EXCOUPON, SECURITY_ID, PROVIDER, REF_DATA);
+    double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurves(PRODUCT_NO_EXCOUPON, PROVIDER, REF_DATA);
     LocalDate standardSettlementDate = PRODUCT.getSettlementDateOffset().adjust(PROVIDER.getValuationDate(), REF_DATA);
     double priceCleanComputed = PRODUCT_PRICER.cleanPriceFromDirtyPrice(PRODUCT, standardSettlementDate, priceDirty);
     CurrencyAmount pvCleanPrice = TRADE_PRICER.presentValueFromCleanPrice(
@@ -820,7 +795,7 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   public void test_presentValueFromCleanPriceWithZSpread_continuous_noExcoupon_coherency() {
     double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurvesWithZSpread(
-        PRODUCT_NO_EXCOUPON, SECURITY_ID, PROVIDER, REF_DATA, Z_SPREAD, CONTINUOUS, 0);
+        PRODUCT_NO_EXCOUPON, PROVIDER, REF_DATA, Z_SPREAD, CONTINUOUS, 0);
     LocalDate standardSettlementDate = PRODUCT.getSettlementDateOffset().adjust(PROVIDER.getValuationDate(), REF_DATA);
     double priceCleanComputed = PRODUCT_PRICER.cleanPriceFromDirtyPrice(PRODUCT, standardSettlementDate, priceDirty);
     CurrencyAmount pvCleanPrice = TRADE_PRICER.presentValueFromCleanPriceWithZSpread(
@@ -832,7 +807,7 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   public void test_presentValueFromCleanPriceWithZSpread_periodic_noExcoupon_coherency() {
     double priceDirty = PRODUCT_PRICER.dirtyPriceFromCurvesWithZSpread(
-        PRODUCT_NO_EXCOUPON, SECURITY_ID, PROVIDER, REF_DATA, Z_SPREAD, PERIODIC, PERIOD_PER_YEAR);
+        PRODUCT_NO_EXCOUPON, PROVIDER, REF_DATA, Z_SPREAD, PERIODIC, PERIOD_PER_YEAR);
     LocalDate standardSettlementDate = PRODUCT.getSettlementDateOffset().adjust(PROVIDER.getValuationDate(), REF_DATA);
     double priceCleanComputed = PRODUCT_PRICER.cleanPriceFromDirtyPrice(PRODUCT, standardSettlementDate, priceDirty);
     CurrencyAmount pvCleanPrice = TRADE_PRICER.presentValueFromCleanPriceWithZSpread(
@@ -900,7 +875,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -909,7 +883,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -923,7 +896,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnDetachment = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_DETACHMENT)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -934,7 +906,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBtwnDetachmentCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BTWN_DETACHMENT_COUPON)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -947,7 +918,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -956,7 +926,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -966,7 +935,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnDetachment = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_DETACHMENT)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -977,7 +945,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBtwnDetachmentCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BTWN_DETACHMENT_COUPON)
         .product(PRODUCT)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -990,7 +957,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -999,7 +965,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -1013,7 +978,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_COUPON)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -1026,7 +990,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeAfter = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -1035,7 +998,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeBefore = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_BEFORE)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();
@@ -1045,7 +1007,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
     ResolvedFixedCouponBondTrade tradeOnCoupon = ResolvedFixedCouponBondTrade.builder()
         .tradeInfo(TRADE_INFO_ON_COUPON)
         .product(PRODUCT_NO_EXCOUPON)
-        .securityStandardId(SECURITY_ID)
         .quantity(QUANTITY)
         .payment(UPFRONT_PAYMENT_ZERO)
         .build();

@@ -25,7 +25,7 @@ import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
 import com.opengamma.strata.basics.currency.Payment;
 import com.opengamma.strata.basics.market.ReferenceData;
-import com.opengamma.strata.collect.id.StandardId;
+import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.product.ResolvedTrade;
 import com.opengamma.strata.product.TradeInfo;
 
@@ -40,7 +40,7 @@ import com.opengamma.strata.product.TradeInfo;
  * If the data changes, such as the addition of a new holiday, the resolved form will not be updated.
  * Care must be taken when placing the resolved form in a cache or persistence layer.
  */
-@BeanDefinition
+@BeanDefinition(constructorScope = "package")
 public final class ResolvedFixedCouponBondTrade
     implements ResolvedTrade, ImmutableBean, Serializable {
 
@@ -52,17 +52,12 @@ public final class ResolvedFixedCouponBondTrade
   @PropertyDefinition(overrideGet = true)
   private final TradeInfo tradeInfo;
   /**
-   * The resolved fixed coupon bond product.
+   * The bond that was traded.
    * <p>
    * The product captures the contracted financial details of the trade.
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final ResolvedFixedCouponBond product;
-  /**
-   * The identifier used to refer to the security.
-   */
-  @PropertyDefinition(validate = "notNull")
-  private final StandardId securityStandardId;
   /**
    * The quantity that was traded.
    * <p>
@@ -70,6 +65,13 @@ public final class ResolvedFixedCouponBondTrade
    */
   @PropertyDefinition
   private final long quantity;
+  /**
+   * The price that was traded.
+   * <p>
+   * This is the price agreed when the trade occurred.
+   */
+  @PropertyDefinition(validate = "ArgChecker.notNegative")
+  private final double price;
   /**
    * The upfront fee payment of the bond trade.
    * <p>
@@ -114,19 +116,27 @@ public final class ResolvedFixedCouponBondTrade
     return new ResolvedFixedCouponBondTrade.Builder();
   }
 
-  private ResolvedFixedCouponBondTrade(
+  /**
+   * Creates an instance.
+   * @param tradeInfo  the value of the property
+   * @param product  the value of the property, not null
+   * @param quantity  the value of the property
+   * @param price  the value of the property
+   * @param payment  the value of the property, not null
+   */
+  ResolvedFixedCouponBondTrade(
       TradeInfo tradeInfo,
       ResolvedFixedCouponBond product,
-      StandardId securityStandardId,
       long quantity,
+      double price,
       Payment payment) {
     JodaBeanUtils.notNull(product, "product");
-    JodaBeanUtils.notNull(securityStandardId, "securityStandardId");
+    ArgChecker.notNegative(price, "price");
     JodaBeanUtils.notNull(payment, "payment");
     this.tradeInfo = tradeInfo;
     this.product = product;
-    this.securityStandardId = securityStandardId;
     this.quantity = quantity;
+    this.price = price;
     this.payment = payment;
   }
 
@@ -159,7 +169,7 @@ public final class ResolvedFixedCouponBondTrade
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the resolved fixed coupon bond product.
+   * Gets the bond that was traded.
    * <p>
    * The product captures the contracted financial details of the trade.
    * @return the value of the property, not null
@@ -171,15 +181,6 @@ public final class ResolvedFixedCouponBondTrade
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the identifier used to refer to the security.
-   * @return the value of the property, not null
-   */
-  public StandardId getSecurityStandardId() {
-    return securityStandardId;
-  }
-
-  //-----------------------------------------------------------------------
-  /**
    * Gets the quantity that was traded.
    * <p>
    * This will be positive if buying and negative if selling.
@@ -187,6 +188,17 @@ public final class ResolvedFixedCouponBondTrade
    */
   public long getQuantity() {
     return quantity;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the price that was traded.
+   * <p>
+   * This is the price agreed when the trade occurred.
+   * @return the value of the property
+   */
+  public double getPrice() {
+    return price;
   }
 
   //-----------------------------------------------------------------------
@@ -221,8 +233,8 @@ public final class ResolvedFixedCouponBondTrade
       ResolvedFixedCouponBondTrade other = (ResolvedFixedCouponBondTrade) obj;
       return JodaBeanUtils.equal(tradeInfo, other.tradeInfo) &&
           JodaBeanUtils.equal(product, other.product) &&
-          JodaBeanUtils.equal(securityStandardId, other.securityStandardId) &&
           (quantity == other.quantity) &&
+          JodaBeanUtils.equal(price, other.price) &&
           JodaBeanUtils.equal(payment, other.payment);
     }
     return false;
@@ -233,8 +245,8 @@ public final class ResolvedFixedCouponBondTrade
     int hash = getClass().hashCode();
     hash = hash * 31 + JodaBeanUtils.hashCode(tradeInfo);
     hash = hash * 31 + JodaBeanUtils.hashCode(product);
-    hash = hash * 31 + JodaBeanUtils.hashCode(securityStandardId);
     hash = hash * 31 + JodaBeanUtils.hashCode(quantity);
+    hash = hash * 31 + JodaBeanUtils.hashCode(price);
     hash = hash * 31 + JodaBeanUtils.hashCode(payment);
     return hash;
   }
@@ -245,8 +257,8 @@ public final class ResolvedFixedCouponBondTrade
     buf.append("ResolvedFixedCouponBondTrade{");
     buf.append("tradeInfo").append('=').append(tradeInfo).append(',').append(' ');
     buf.append("product").append('=').append(product).append(',').append(' ');
-    buf.append("securityStandardId").append('=').append(securityStandardId).append(',').append(' ');
     buf.append("quantity").append('=').append(quantity).append(',').append(' ');
+    buf.append("price").append('=').append(price).append(',').append(' ');
     buf.append("payment").append('=').append(JodaBeanUtils.toString(payment));
     buf.append('}');
     return buf.toString();
@@ -273,15 +285,15 @@ public final class ResolvedFixedCouponBondTrade
     private final MetaProperty<ResolvedFixedCouponBond> product = DirectMetaProperty.ofImmutable(
         this, "product", ResolvedFixedCouponBondTrade.class, ResolvedFixedCouponBond.class);
     /**
-     * The meta-property for the {@code securityStandardId} property.
-     */
-    private final MetaProperty<StandardId> securityStandardId = DirectMetaProperty.ofImmutable(
-        this, "securityStandardId", ResolvedFixedCouponBondTrade.class, StandardId.class);
-    /**
      * The meta-property for the {@code quantity} property.
      */
     private final MetaProperty<Long> quantity = DirectMetaProperty.ofImmutable(
         this, "quantity", ResolvedFixedCouponBondTrade.class, Long.TYPE);
+    /**
+     * The meta-property for the {@code price} property.
+     */
+    private final MetaProperty<Double> price = DirectMetaProperty.ofImmutable(
+        this, "price", ResolvedFixedCouponBondTrade.class, Double.TYPE);
     /**
      * The meta-property for the {@code payment} property.
      */
@@ -294,8 +306,8 @@ public final class ResolvedFixedCouponBondTrade
         this, null,
         "tradeInfo",
         "product",
-        "securityStandardId",
         "quantity",
+        "price",
         "payment");
 
     /**
@@ -311,10 +323,10 @@ public final class ResolvedFixedCouponBondTrade
           return tradeInfo;
         case -309474065:  // product
           return product;
-        case -593973224:  // securityStandardId
-          return securityStandardId;
         case -1285004149:  // quantity
           return quantity;
+        case 106934601:  // price
+          return price;
         case -786681338:  // payment
           return payment;
       }
@@ -354,19 +366,19 @@ public final class ResolvedFixedCouponBondTrade
     }
 
     /**
-     * The meta-property for the {@code securityStandardId} property.
-     * @return the meta-property, not null
-     */
-    public MetaProperty<StandardId> securityStandardId() {
-      return securityStandardId;
-    }
-
-    /**
      * The meta-property for the {@code quantity} property.
      * @return the meta-property, not null
      */
     public MetaProperty<Long> quantity() {
       return quantity;
+    }
+
+    /**
+     * The meta-property for the {@code price} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<Double> price() {
+      return price;
     }
 
     /**
@@ -385,10 +397,10 @@ public final class ResolvedFixedCouponBondTrade
           return ((ResolvedFixedCouponBondTrade) bean).getTradeInfo();
         case -309474065:  // product
           return ((ResolvedFixedCouponBondTrade) bean).getProduct();
-        case -593973224:  // securityStandardId
-          return ((ResolvedFixedCouponBondTrade) bean).getSecurityStandardId();
         case -1285004149:  // quantity
           return ((ResolvedFixedCouponBondTrade) bean).getQuantity();
+        case 106934601:  // price
+          return ((ResolvedFixedCouponBondTrade) bean).getPrice();
         case -786681338:  // payment
           return ((ResolvedFixedCouponBondTrade) bean).getPayment();
       }
@@ -414,8 +426,8 @@ public final class ResolvedFixedCouponBondTrade
 
     private TradeInfo tradeInfo;
     private ResolvedFixedCouponBond product;
-    private StandardId securityStandardId;
     private long quantity;
+    private double price;
     private Payment payment;
 
     /**
@@ -432,8 +444,8 @@ public final class ResolvedFixedCouponBondTrade
     private Builder(ResolvedFixedCouponBondTrade beanToCopy) {
       this.tradeInfo = beanToCopy.getTradeInfo();
       this.product = beanToCopy.getProduct();
-      this.securityStandardId = beanToCopy.getSecurityStandardId();
       this.quantity = beanToCopy.getQuantity();
+      this.price = beanToCopy.getPrice();
       this.payment = beanToCopy.getPayment();
     }
 
@@ -445,10 +457,10 @@ public final class ResolvedFixedCouponBondTrade
           return tradeInfo;
         case -309474065:  // product
           return product;
-        case -593973224:  // securityStandardId
-          return securityStandardId;
         case -1285004149:  // quantity
           return quantity;
+        case 106934601:  // price
+          return price;
         case -786681338:  // payment
           return payment;
         default:
@@ -465,11 +477,11 @@ public final class ResolvedFixedCouponBondTrade
         case -309474065:  // product
           this.product = (ResolvedFixedCouponBond) newValue;
           break;
-        case -593973224:  // securityStandardId
-          this.securityStandardId = (StandardId) newValue;
-          break;
         case -1285004149:  // quantity
           this.quantity = (Long) newValue;
+          break;
+        case 106934601:  // price
+          this.price = (Double) newValue;
           break;
         case -786681338:  // payment
           this.payment = (Payment) newValue;
@@ -509,8 +521,8 @@ public final class ResolvedFixedCouponBondTrade
       return new ResolvedFixedCouponBondTrade(
           tradeInfo,
           product,
-          securityStandardId,
           quantity,
+          price,
           payment);
     }
 
@@ -528,7 +540,7 @@ public final class ResolvedFixedCouponBondTrade
     }
 
     /**
-     * Sets the resolved fixed coupon bond product.
+     * Sets the bond that was traded.
      * <p>
      * The product captures the contracted financial details of the trade.
      * @param product  the new value, not null
@@ -541,17 +553,6 @@ public final class ResolvedFixedCouponBondTrade
     }
 
     /**
-     * Sets the identifier used to refer to the security.
-     * @param securityStandardId  the new value, not null
-     * @return this, for chaining, not null
-     */
-    public Builder securityStandardId(StandardId securityStandardId) {
-      JodaBeanUtils.notNull(securityStandardId, "securityStandardId");
-      this.securityStandardId = securityStandardId;
-      return this;
-    }
-
-    /**
      * Sets the quantity that was traded.
      * <p>
      * This will be positive if buying and negative if selling.
@@ -560,6 +561,19 @@ public final class ResolvedFixedCouponBondTrade
      */
     public Builder quantity(long quantity) {
       this.quantity = quantity;
+      return this;
+    }
+
+    /**
+     * Sets the price that was traded.
+     * <p>
+     * This is the price agreed when the trade occurred.
+     * @param price  the new value
+     * @return this, for chaining, not null
+     */
+    public Builder price(double price) {
+      ArgChecker.notNegative(price, "price");
+      this.price = price;
       return this;
     }
 
@@ -586,8 +600,8 @@ public final class ResolvedFixedCouponBondTrade
       buf.append("ResolvedFixedCouponBondTrade.Builder{");
       buf.append("tradeInfo").append('=').append(JodaBeanUtils.toString(tradeInfo)).append(',').append(' ');
       buf.append("product").append('=').append(JodaBeanUtils.toString(product)).append(',').append(' ');
-      buf.append("securityStandardId").append('=').append(JodaBeanUtils.toString(securityStandardId)).append(',').append(' ');
       buf.append("quantity").append('=').append(JodaBeanUtils.toString(quantity)).append(',').append(' ');
+      buf.append("price").append('=').append(JodaBeanUtils.toString(price)).append(',').append(' ');
       buf.append("payment").append('=').append(JodaBeanUtils.toString(payment));
       buf.append('}');
       return buf.toString();
