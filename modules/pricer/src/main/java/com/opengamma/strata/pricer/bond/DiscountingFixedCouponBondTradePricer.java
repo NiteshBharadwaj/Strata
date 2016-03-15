@@ -389,4 +389,26 @@ public class DiscountingFixedCouponBondTradePricer {
     return pt; // NoPointSensitivity
   }
 
+  //-------------------------------------------------------------------------
+  /**
+   * Calculates the payment that was made for the trade.
+   * <p>
+   * This is the payment that was made on the settlement date based on the quantity and clean price.
+   * 
+   * @param trade  the trade
+   * @param cleanPrice  the clean price that was traded
+   * @return the payment that was made
+   */
+  public Payment upfrontPayment(ResolvedFixedCouponBondTrade trade, double cleanPrice) {
+    ResolvedFixedCouponBond product = trade.getProduct();
+    // payment is based on the dirty price
+    LocalDate settlementDate = trade.getTradeInfo().getSettlementDate().get();
+    double dirtyPrice = productPricer.dirtyPriceFromCleanPrice(product, settlementDate, cleanPrice);
+    // calculate payment
+    Currency currency = product.getCurrency();
+    long quantity = trade.getQuantity();
+    double notional = product.getNotional();
+    return Payment.of(CurrencyAmount.of(currency, -quantity * notional * dirtyPrice), settlementDate);
+  }
+
 }

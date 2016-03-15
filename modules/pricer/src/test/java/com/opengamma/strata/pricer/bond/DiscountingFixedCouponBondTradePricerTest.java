@@ -69,6 +69,17 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   private static final ReferenceData REF_DATA = ReferenceData.standard();
 
+  // pricers
+  private static final double TOL = 1.0e-12;
+  private static final double EPS = 1.0e-6;
+  private static final DiscountingFixedCouponBondTradePricer TRADE_PRICER = DiscountingFixedCouponBondTradePricer.DEFAULT;
+  private static final DiscountingFixedCouponBondProductPricer PRODUCT_PRICER =
+      DiscountingFixedCouponBondProductPricer.DEFAULT;
+  private static final DiscountingPaymentPricer PRICER_NOMINAL = DiscountingPaymentPricer.DEFAULT;
+  private static final DiscountingFixedCouponBondPaymentPeriodPricer COUPON_PRICER =
+      DiscountingFixedCouponBondPaymentPeriodPricer.DEFAULT;
+  private static final RatesFiniteDifferenceSensitivityCalculator FD_CAL = new RatesFiniteDifferenceSensitivityCalculator(EPS);
+
   // fixed coupon bond
   private static final StandardId SECURITY_ID = StandardId.of("OG-Ticker", "GOVT1-BOND1");
   private static final StandardId ISSUER_ID = StandardId.of("OG-Ticker", "GOVT1");
@@ -128,8 +139,15 @@ public class DiscountingFixedCouponBondTradePricerTest {
       .exCouponPeriod(EX_COUPON)
       .build()
       .resolve(REF_DATA);
-  private static final Payment UPFRONT_PAYMENT = Payment.of(CurrencyAmount.of(EUR, -QUANTITY * NOTIONAL * 0.99), SETTLEMENT);
-  private static final Payment UPFRONT_PAYMENT_ZERO = Payment.of(CurrencyAmount.of(EUR, 0d), SETTLE_BEFORE);
+  private static final double CLEAN_PRICE = 0.98;
+  private static final double DIRTY_PRICE = PRODUCT_PRICER.dirtyPriceFromCleanPrice(PRODUCT, SETTLEMENT, CLEAN_PRICE);
+  private static final Payment UPFRONT_PAYMENT = Payment.of(
+      CurrencyAmount.of(EUR, -QUANTITY * NOTIONAL * DIRTY_PRICE), SETTLEMENT);
+  private static final double DIRTY_PRICE2 = PRODUCT_PRICER.dirtyPriceFromCleanPrice(PRODUCT, SETTLE_BEFORE, CLEAN_PRICE);
+  private static final Payment UPFRONT_PAYMENT_ZERO = Payment.of(
+      CurrencyAmount.of(EUR, -QUANTITY * NOTIONAL * DIRTY_PRICE2), SETTLE_BEFORE);
+  // TODO: original code   Payment.of(CurrencyAmount.of(EUR, 0d), SETTLE_BEFORE);
+
   /** nonzero ex-coupon period */
   private static final ResolvedFixedCouponBondTrade TRADE = ResolvedFixedCouponBondTrade.builder()
       .tradeInfo(TRADE_INFO)
@@ -175,17 +193,6 @@ public class DiscountingFixedCouponBondTradePricerTest {
 
   private static final double Z_SPREAD = 0.035;
   private static final int PERIOD_PER_YEAR = 4;
-  private static final double TOL = 1.0e-12;
-  private static final double EPS = 1.0e-6;
-
-  // pricers
-  private static final DiscountingFixedCouponBondTradePricer TRADE_PRICER = DiscountingFixedCouponBondTradePricer.DEFAULT;
-  private static final DiscountingFixedCouponBondProductPricer PRODUCT_PRICER =
-      DiscountingFixedCouponBondProductPricer.DEFAULT;
-  private static final DiscountingPaymentPricer PRICER_NOMINAL = DiscountingPaymentPricer.DEFAULT;
-  private static final DiscountingFixedCouponBondPaymentPeriodPricer COUPON_PRICER =
-      DiscountingFixedCouponBondPaymentPeriodPricer.DEFAULT;
-  private static final RatesFiniteDifferenceSensitivityCalculator FD_CAL = new RatesFiniteDifferenceSensitivityCalculator(EPS);
 
   //-------------------------------------------------------------------------
   public void test_presentValue() {
@@ -1103,6 +1110,14 @@ public class DiscountingFixedCouponBondTradePricerTest {
     double yc = DAY_COUNT.relativeYearFraction(startDate, paymentDate);
     CurrencyAmount ccComputed = TRADE_PRICER.currentCash(TRADE_NO_EXCOUPON, paymentDate);
     assertEquals(ccComputed, CurrencyAmount.of(EUR, NOTIONAL * (1d + yc * FIXED_RATE) * QUANTITY));
+  }
+
+  //-------------------------------------------------------------------------
+  public void test_upfrontPayment() {
+    Payment payment = TRADE_PRICER.upfrontPayment(TRADE, CLEAN_PRICE);
+    assertEquals(payment.getCurrency(), EUR);
+    assertEquals(payment.getAmount(), -NOTIONAL * QUANTITY * DIRTY_PRICE, TOL);
+    assertEquals(payment.getDate(), SETTLEMENT);
   }
 
   //-------------------------------------------------------------------------
