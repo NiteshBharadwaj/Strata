@@ -148,7 +148,6 @@ public class BlackFormulaRepositoryTest {
    * Tests the strikes in a range of strikes, volatilities and call/put.
    */
   public void impliedStrike() {
-    BlackPriceFunction function = new BlackPriceFunction();
     int nbStrike = STRIKES_INPUT.length;
     int nbVols = VOLS.length;
     boolean callput = false;
@@ -156,10 +155,8 @@ public class BlackFormulaRepositoryTest {
       callput = !callput;
       for (int loopstrike = 0; loopstrike < nbStrike; loopstrike++) {
         for (int loopVols = 0; loopVols < nbVols; loopVols++) {
-          EuropeanVanillaOption option =
-              EuropeanVanillaOption.of(STRIKES_INPUT[loopstrike], TIME_TO_EXPIRY, PutCall.ofPut(!callput));
-          BlackFunctionData data = BlackFunctionData.of(FORWARD, 1.0, VOLS[loopVols]);
-          ValueDerivatives d = function.getPriceAdjoint(option, data);
+          ValueDerivatives d = BlackFormulaRepository
+              .priceAdjoint(FORWARD, STRIKES_INPUT[loopstrike], TIME_TO_EXPIRY, VOLS[loopVols], callput);
           double delta = d.getDerivative(0);
           double strikeOutput =
               BlackFormulaRepository.impliedStrike(delta, callput, FORWARD, TIME_TO_EXPIRY, VOLS[loopVols]);
@@ -8770,6 +8767,52 @@ public class BlackFormulaRepositoryTest {
       assertEquals("check " + i, 
           priceNormal, priceBlackComputed, TOLERANCE_PRICE);
     }
+  }
+  
+  
+
+
+
+  private static final double T = 4.5;
+  private static final double F = 104;
+  private static final double DELTA_F = 10;
+  private static final double SIGMA = 0.5;
+  private static final double TOLERANCE_PRICE2 = 1.0E-8;
+  private static final double TOLERANCE_PRICE_DELTA = 1.0E-6;
+
+  public void priceAdjoint() {
+    // Price
+    double price = BlackFormulaRepository.price(F, F - DELTA_F, T, SIGMA, true);
+    ValueDerivatives priceAdjoint = BlackFormulaRepository.priceAdjoint(F, F - DELTA_F, T, SIGMA, true);
+    assertEquals(price, priceAdjoint.getValue(), TOLERANCE_PRICE2);
+    // Price with 0 volatility
+    double price0 = BlackFormulaRepository.price(F, F - DELTA_F, T, 0.0d, true);
+    ValueDerivatives price0Adjoint = BlackFormulaRepository.priceAdjoint(F, F - DELTA_F, T, 0.0d, true);
+    assertEquals(price0, price0Adjoint.getValue(), TOLERANCE_PRICE2);
+    // Derivative forward.
+    double deltaF = 0.01;
+    double priceFP = BlackFormulaRepository.price(F + deltaF, F - DELTA_F, T, SIGMA, true);
+    double priceFM = BlackFormulaRepository.price(F - deltaF, F - DELTA_F, T, SIGMA, true);
+    double derivativeF_FD = (priceFP - priceFM) / (2 * deltaF);
+    assertEquals(derivativeF_FD, priceAdjoint.getDerivative(0), TOLERANCE_PRICE_DELTA);
+    // Derivative strike.
+    double deltaK = 0.01;
+    double priceKP = BlackFormulaRepository.price(F, F - DELTA_F + deltaK, T, SIGMA, true);
+    double priceKM = BlackFormulaRepository.price(F, F - DELTA_F - deltaK, T, SIGMA, true);
+    double derivativeK_FD = (priceKP - priceKM) / (2 * deltaK);
+    assertEquals(derivativeK_FD, priceAdjoint.getDerivative(1), TOLERANCE_PRICE_DELTA);
+    // Derivative time.
+    double deltaT = 1.0/ 365.0;
+    double priceTP = BlackFormulaRepository.price(F, F - DELTA_F, T + deltaT, SIGMA, true);
+    double priceTM = BlackFormulaRepository.price(F, F - DELTA_F, T - deltaT, SIGMA , true);
+    double derivativeT_FD = (priceTP - priceTM) / (2 * deltaT);
+    assertEquals(derivativeT_FD, priceAdjoint.getDerivative(2), TOLERANCE_PRICE_DELTA);
+    // Derivative volatility.
+    double deltaV = 0.0001;
+    double priceVP = BlackFormulaRepository.price(F, F - DELTA_F, T, SIGMA + deltaV, true);
+    double priceVM = BlackFormulaRepository.price(F, F - DELTA_F, T, SIGMA - deltaV, true);
+    double derivativeV_FD = (priceVP - priceVM) / (2 * deltaV);
+    assertEquals(derivativeV_FD, priceAdjoint.getDerivative(3), TOLERANCE_PRICE_DELTA);
   }
 
 }

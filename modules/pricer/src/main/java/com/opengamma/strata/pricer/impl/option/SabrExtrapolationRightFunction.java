@@ -44,7 +44,7 @@ public class SabrExtrapolationRightFunction {
   /**
    * Black function used.
    */
-  private static final BlackPriceFunction BLACK_FUNCTION = new BlackPriceFunction();
+//  private static final BlackPriceFunction BLACK_FUNCTION = new BlackPriceFunction();
   /**
    * Value below which the time-to-expiry is considered to be 0 and the price of the fitting parameters fit a price of 0 (OTM).
    */
@@ -237,9 +237,8 @@ public class SabrExtrapolationRightFunction {
     // Uses Hagan et al SABR function.
     if (strike <= cutOffStrike) {
       ValueDerivatives volatilityA = sabrFunction.getVolatilityAdjoint(forward, strike, timeToExpiry, sabrData);
-      BlackFunctionData dataBlack = BlackFunctionData.of(forward, 1d, volatilityA.getValue());
-      EuropeanVanillaOption option = EuropeanVanillaOption.of(strike, timeToExpiry, putCall);
-      ValueDerivatives pA = BLACK_FUNCTION.getPriceAdjoint(option, dataBlack);
+      ValueDerivatives pA = BlackFormulaRepository.priceAdjoint(
+          forward, strike, timeToExpiry, volatilityA.getValue(), putCall == PutCall.CALL);
       return pA.getDerivative(0) + pA.getDerivative(1) * volatilityA.getDerivative(0);
     }
     // Uses extrapolation for call.
@@ -273,9 +272,8 @@ public class SabrExtrapolationRightFunction {
     double price;
     if (strike <= cutOffStrike) { // Uses Hagan et al SABR function.
       ValueDerivatives volatilityA = sabrFunction.getVolatilityAdjoint(forward, strike, timeToExpiry, sabrData);
-      BlackFunctionData dataBlack = BlackFunctionData.of(forward, 1d, volatilityA.getValue());
-      EuropeanVanillaOption option = EuropeanVanillaOption.of(strike, timeToExpiry, putCall);
-      ValueDerivatives pA = BLACK_FUNCTION.getPriceAdjoint(option, dataBlack);
+      ValueDerivatives pA = BlackFormulaRepository.priceAdjoint(
+          forward, strike, timeToExpiry, volatilityA.getValue(), putCall == PutCall.CALL);
       price = pA.getValue();
       for (int loopparam = 0; loopparam < 4; loopparam++) {
         priceDerivativeSabr[loopparam] = pA.getDerivative(1) * volatilityA.getDerivative(loopparam + 2);

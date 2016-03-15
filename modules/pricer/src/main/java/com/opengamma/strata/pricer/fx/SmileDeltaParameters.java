@@ -27,7 +27,7 @@ import com.opengamma.strata.pricer.impl.option.BlackFormulaRepository;
  * The delta used is the delta with respect to forward.
  */
 @BeanDefinition(style = "light")
-final class SmileDeltaParameters
+final public class SmileDeltaParameters
     implements ImmutableBean {
   // NOTE: This class is package scoped, as the Smile data provider API is effectively still in Beta
 

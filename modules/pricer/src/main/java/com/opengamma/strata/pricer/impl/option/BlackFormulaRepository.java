@@ -10,7 +10,9 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.opengamma.strata.basics.value.ValueDerivatives;
 import com.opengamma.strata.collect.ArgChecker;
+import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.math.impl.rootfinding.NewtonRaphsonSingleRootFinder;
 import com.opengamma.strata.math.impl.statistics.distribution.NormalDistribution;
 import com.opengamma.strata.math.impl.statistics.distribution.ProbabilityDistribution;
@@ -96,6 +98,97 @@ public final class BlackFormulaRepository {
 
     double res = sign * (first - second);
     return Math.max(0., res);
+  }
+  
+
+
+  //-------------------------------------------------------------------------
+  /**
+   * Computes the price without numeraire and its derivatives.
+   * <p>
+   * The derivatives are in the following order:
+   * <ul>
+   * <li>[0] derivative with respect to the forward
+   * <li>[1] derivative with respect to the strike
+   * <li>[2] derivative with respect to the time to expiry
+   * <li>[3] derivative with respect to the volatility
+   * </ul>
+   * 
+   * @param forward  the forward value of the underlying
+   * @param strike  the strike
+   * @param timeToExpiry  the time to expiry
+   * @param lognormalVol  the log-normal volatility
+   * @param isCall  true for call, false for put
+   * @return the forward price and its derivatives 
+   */
+  public static ValueDerivatives priceAdjoint(
+      double forward,
+      double strike,
+      double timeToExpiry,
+      double lognormalVol,
+      boolean isCall) {
+
+    ArgChecker.isTrue(forward >= 0d, "negative/NaN forward; have {}", forward);
+    ArgChecker.isTrue(strike >= 0d, "negative/NaN strike; have {}", strike);
+    ArgChecker.isTrue(timeToExpiry >= 0d, "negative/NaN timeToExpiry; have {}", timeToExpiry);
+    ArgChecker.isTrue(lognormalVol >= 0d, "negative/NaN lognormalVol; have {}", lognormalVol);
+
+    double sigmaRootT = lognormalVol * Math.sqrt(timeToExpiry);
+    if (Double.isNaN(sigmaRootT)) {
+      log.info("lognormalVol * Math.sqrt(timeToExpiry) ambiguous");
+      sigmaRootT = 1d;
+    }
+    int sign = isCall ? 1 : -1;
+    boolean bFwd = (forward > LARGE);
+    boolean bStr = (strike > LARGE);
+    boolean bSigRt = (sigmaRootT > LARGE);
+    double d1 = 0d;
+    double d2 = 0d;
+
+    if (bFwd && bStr) {
+      log.info("(large value)/(large value) ambiguous");
+      double price = isCall ? (forward >= strike ? forward : 0d) : (strike >= forward ? strike : 0d); // ???
+      double[] derivatives = new double[4];
+      return ValueDerivatives.of(price, DoubleArray.ofUnsafe(derivatives)); // ??
+    }
+    if (sigmaRootT < SMALL) {
+      boolean isItm = (sign * (forward - strike))>0;
+      double price = isItm ? sign * (forward - strike) : 0d;
+      double[] derivatives = new double[4];
+      derivatives[0] = isItm ? sign : 0d;
+      derivatives[1] = isItm ? -sign : 0d;
+      return ValueDerivatives.of(price, DoubleArray.ofUnsafe(derivatives));
+    }
+    if (Math.abs(forward - strike) < SMALL || bSigRt) {
+      d1 = 0.5 * sigmaRootT;
+      d2 = -0.5 * sigmaRootT;
+    } else {
+      d2 = Math.log(forward / strike) / sigmaRootT - 0.5 * sigmaRootT;
+      d1 = d2 + sigmaRootT;
+    }
+
+    double nF = NORMAL.getCDF(sign * d1);
+    double nS = NORMAL.getCDF(sign * d2);
+    double first = nF == 0d ? 0d : forward * nF;
+    double second = nS == 0d ? 0d : strike * nS;
+    double res = sign * (first - second);    
+    double price = Math.max(0.0d, res);
+    
+    // Backward sweep
+    double resBar = 1.0;
+    double firstBar = sign * resBar;
+    double secondBar = - sign * resBar;
+    double forwardBar = nF * firstBar;
+    double strikeBar = nS * secondBar;
+    double nFBar = forward * firstBar;
+    double d1Bar = sign * NORMAL.getPDF(sign * d1) * nFBar;
+    // Implementation Note: d2Bar = 0; no need to implement it.
+    // Methodology Note: d2Bar is optimal exercise boundary. The derivative at the optimal point is 0.
+    double sigmaRootTBar = d1Bar;
+    double lognormalVolBar =  Math.sqrt(timeToExpiry) * sigmaRootTBar;
+    double timeToExpiryBar = 0.5 / Math.sqrt(timeToExpiry) * lognormalVol * sigmaRootTBar;
+    return ValueDerivatives.of(price, 
+        DoubleArray.ofUnsafe(new double[] {forwardBar, strikeBar, timeToExpiryBar, lognormalVolBar}));
   }
 
   //-------------------------------------------------------------------------
